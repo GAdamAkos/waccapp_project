@@ -1,0 +1,33 @@
+{
+  "olvasas": {
+    "start": "q1",
+    "flow": {
+      "q1": {
+        "text": "Olvasol könyvet?\n1 - Igen\n2 - Nem",
+        "next": {
+          "1": "q2",
+          "2": "q3"
+        }
+      },
+      "q2": {
+        "text": "Jelenleg olvasol valamilyen könyvet?\n1 - Igen\n2 - Nem",
+        "next": {
+          "1": "q2.1",
+          "2": "q2.2"
+        }
+      },
+      "q3": {
+        "text": "Kár hogy nem olvasol könyvet!",
+        "next": {}
+      },
+      "q2.1": {
+        "text": "Melyik könyvet olvasod most?",
+        "next": {}
+      },
+      "q2.2": {
+        "text": "pedig olvasnod kellene",
+        "next": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "orvosi": {
+    "start": "q1",
+    "flow": {
+      "q1": {
+        "text": "Sikerült az időpont?\n1 - Igen\n2 - Nem",
+        "next": {
+          "1": "q2",
+          "2": "q3"
+        }
+      },
+      "q2": {
+        "text": "Mikorra?\n1 - Ma\n2 - Holnap\n3 - Más időpont",
+        "next": {
+          "1": "q4",
+          "2": "q5",
+          "3": "q6"
+        }
+      },
+      "q3": {
+        "text": "Mikorra szerertne időpontot?\n1 - Ma\n2 - Holnap\n3 - Holnap után",
+        "next": {
+          "1": "q7",
+          "2": "q8",
+          "3": "q9"
+        }
+      },
+      "q4": {
+        "text": "Rendben, mára szól az Ön időpontja",
+        "next": {}
+      },
+      "q5": {
+        "text": "Rendben, holnapra szól az Ön időpontja",
+        "next": {}
+      },
+      "q6": {
+        "text": "Rendben, más időpontra szól az Ön időpontja",
+        "next": {}
+      },
+      "q7": {
+        "text": "Rendben, rögzítem mára Önnek az időpontot",
+        "next": {}
+      },
+      "q8": {
+        "text": "Rendben, rögzítem holnbapra Önnek az időpontot",
+        "next": {}
+      },
+      "q9": {
+        "text": "Rendben, rögzítem holnap utánra Önnek az időpontot",
+        "next": {}
+      }
+    }
+  }
+}

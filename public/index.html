@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WhatsApp Üzenetküldő</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #111;
+            --accent: #26a69a;
+            --input: #f0f0f0;
+            --border: #ccc;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1e1e1e;
+                --text: #eee;        /* <-- NE legyen fekete */
+                --accent: #26a69a;
+                --input: #2c2c2c;
+                --border: #444;
+            }
+        }
+
+        [data-theme="dark"] {
+            --bg: #1e1e1e;
+            --text: #eee;          /* <-- NE legyen fekete */
+            --input: #2c2c2c;
+            --border: #444;
+        }
+
+        [data-theme="light"] {
+            --bg: #ffffff;
+            --text: #000000;
+            --input: #f0f0f0;
+            --border: #ccc;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        label {
+            margin-top: 1rem;
+            display: block;
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.3rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input);
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        input[type="file"] {
+            padding: 0.4rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1.5rem;
+            font-size: 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #00796b;
+        }
+
+        #status {
+            margin-top: 1rem;
+            font-weight: bold;
+            text-align: center;
+            transition: opacity 0.4s ease;
+            min-height: 1.5rem;
+        }
+
+        .history {
+            margin-top: 2rem;
+        }
+
+        .history h2 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .history ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .history li {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        .theme-toggle {
+            text-align: right;
+            margin-bottom: 1rem;
+        }
+
+        .theme-toggle button {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #message {
+            display: block;
+        }
+
+        #templatePreview {
+            background: var(--input);
+            color: var(--text);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            border: 1px solid var(--border);
+        }
+        #nameLabel, #name { display: none !important; }
+
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    <div class="theme-toggle">
+        <button onclick="toggleTheme()">🌓 Téma váltása</button>
+    </div>
+
+    <h1>WhatsApp Üzenetküldő</h1>
+
+    <label for="name" id="nameLabel">Név (opcionális):</label>
+    <input type="text" id="name" placeholder="Pl. Gábor" />
+
+    <label for="sendMode">Mit szeretnél küldeni?</label>
+    <select id="sendMode">
+        <option value="">-- Válassz típust --</option>
+        <option value="simple_template">Üzenetet</option>
+        <option value="sablon">Sablont</option>
+        <option value="kerdoiv">Kérdőívet</option>
+    </select>
+
+    <label for="phone" id="phoneLabel">Telefonszám(ok):</label>
+    <textarea id="phone" rows="3" placeholder="36123456789
+36201234567"></textarea>
+
+
+    <div id="sablonWrapper" style="display: none; margin-top: 10px;">
+        <div id="templateTypeWrapper" style="display:none;">
+            <label for="templateType">Sablon típusa:</label>
+            <select id="templateType">
+                <option value="whatsapp" selected>WhatsApp API sablon</option>
+            </select>
+        </div>
+
+        <div id="templateSelectWrapper">
+            <label for="template">Üzenet sablon:</label>
+            <select id="template">
+                <option value="">-- Válassz sablont --</option>
+            </select>
+        </div>
+
+        <div id="templateParams"></div>
+    </div>
+
+    <div id="kerdoivWrapper" style="display: none; margin-top: 10px;">
+        <div id="questionnaireModeWrapper" style="display:none;">
+            <label for="questionnaireMode">Kérdőív módja:</label>
+            <select id="questionnaireMode">
+                <option value="template" selected>Sablonos WhatsApp</option>
+            </select>
+        </div>
+
+        <div id="textQuestionnaireWrapper" style="display:none;">
+            <label for="questionnaireSelect">Kérdőív típusa:</label>
+            <select id="questionnaireSelect">
+                <option value="">-- Válassz kérdőívet --</option>
+            </select>
+        </div>
+
+        <div id="templateQuestionnaireWrapper" style="display:none;">
+            <label for="questionnaireSelect2">Kérdőívek:</label>
+            <select id="questionnaireSelect2">
+                <option value="">-- Válassz sablonos kérdőívet --</option>
+            </select>
+        </div>
+    </div>
+
+
+    <div id="customMessageSection">
+        <label for="message">Egyedi üzenet:</label>
+        <textarea id="message" rows="4" placeholder="Írd be az üzenetet..."></textarea>
+    </div>
+
+
+    <div id="templatePreviewContainer" style="display: none;">
+        <label for="templatePreview">Sablon előnézet:</label>
+        <div id="templatePreview"></div>
+    </div>
+
+    <div id="sendSection" style="display: none;">
+
+        <label for="scheduledTime">🕓 Időzített küldés (opcionális):</label>
+        <input type="datetime-local" id="scheduledTime" name="scheduledTime" step="60">
+
+        <div id="fileUploadWrapper">
+            <label for="file">Fájl vagy kép csatolása:</label>
+            <input type="file" id="file" accept="image/*,application/pdf" />
+        </div>
+
+        <div id="sendMessageWrapper" style="display: none;">
+            <button id="sendBtn">Üzenet küldése</button>
+        </div>
+
+        <div id="sendQuestionnaireWrapper" style="display: none;">
+            <button onclick="sendQuestionnaire()">📋 Kérdőív küldése</button>
+        </div>
+        <div id="status"></div>
+        <div id="historySection" style="display: none;">
+            <div class="history">
+                <h2>📜 Előzmények</h2>
+                <ul id="historyList"></ul>
+            </div>
+        </div>
+
+    </div>
+    <div style="margin-top: 2rem; text-align: center;">
+        <button onclick="window.location.href='menu.html'">
+            Vissza a menübe
+        </button>
+    </div>
+    <script>
+        function validateScheduledTimeOrShowError(statusDiv) {
+            const input = document.getElementById('scheduledTime');
+            const value = input?.value || '';
+            if (!value) return true; // nincs időzítés → oké
+
+            const picked = new Date(value).getTime();
+            const nowPlus1 = Date.now() + 60 * 1000;
+
+            if (Number.isNaN(picked) || picked < nowPlus1) {
+                statusDiv.textContent = '⛔ Az időzített küldés csak a következő 1 percen túli időpontra engedélyezett.';
+                statusDiv.style.color = 'crimson';
+                return false;
+            }
+            return true;
+        }
+
+        function toLocalDatetimeInputValue(d) {
+            const pad = n => String(n).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            const mm = pad(d.getMonth() + 1);
+            const dd = pad(d.getDate());
+            const hh = pad(d.getHours());
+            const min = pad(d.getMinutes());
+            return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+        }
+
+        function setMinScheduledTime(suggest = false) {
+            const input = document.getElementById('scheduledTime');
+            if (!input) return;
+
+            const now = new Date();
+
+            // MINIMUM: most + 1 perc
+            const min = new Date(now.getTime() + 1 * 60 * 1000);
+
+            // JAVASOLT ÉRTÉK: most + 2 perc (másodpercek lenullázva)
+            const suggested = new Date(now.getTime() + 2 * 60 * 1000);
+            suggested.setSeconds(0, 0);
+
+            // min beállítás
+            input.min = toLocalDatetimeInputValue(min);
+
+            // ha kérjük a javaslatot (ikonra/fókuszra), állítsuk be:
+            // - ha üres a mező, VAGY kisebb, mint a min, VAGY kisebb, mint a javasolt
+            if (suggest) {
+                const current = input.value ? new Date(input.value) : null;
+                const shouldSuggest =
+                    !current ||
+                    Number.isNaN(current.getTime()) ||
+                    toLocalDatetimeInputValue(current) < input.min ||
+                    toLocalDatetimeInputValue(current) < toLocalDatetimeInputValue(suggested);
+
+                if (shouldSuggest) {
+                    input.value = toLocalDatetimeInputValue(suggested);
+                }
+            } else {
+                // ha csak a minimumot frissítjük és a jelenlegi érték alá csúszott, ürítsük
+                if (input.value && input.value < input.min) {
+                    input.value = '';
+                }
+            }
+        }
+
+
+        // frissítsd betöltéskor, fókuszkor és időnként
+        document.addEventListener('DOMContentLoaded', setMinScheduledTime);
+        document.getElementById('scheduledTime').addEventListener('focus', setMinScheduledTime);
+        setInterval(setMinScheduledTime, 15000);
+        document.getElementById('scheduledTime').addEventListener('click', setMinScheduledTime);
+
+        const textTemplates = {
+            "Szia! Hogy vagy?": "Szia! Hogy vagy?",
+            "Kérlek, hívj vissza!": "Kérlek, hívj vissza!",
+            "Küldöm, amit megbeszéltünk.": "Küldöm, amit megbeszéltünk."
+        };
+
+        let whatsappTemplates = {};
+        let firstTemplateMap = {};        // 🔁 Globális sablonlánc-kezdő sablonok
+        let firstTemplatesLoaded = false;
+
+        const templateTypeSelect = document.getElementById('templateType');
+        const templateSelect = document.getElementById('template');
+        const messageBox = document.getElementById('message');
+        const templateParamsDiv = document.getElementById('templateParams');
+        const statusDiv = document.getElementById('status');
+        const historyList = document.getElementById('historyList');
+
+        function toggleTheme() {
+            const current = document.body.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        function updateTemplateOptions() {
+            const sendMode = document.getElementById('sendMode').value;
+
+            // mindig WhatsApp sablon
+            templateSelect.innerHTML = '<option value="">-- Válassz sablont --</option>';
+            templateParamsDiv.innerHTML = "";
+
+            const previewContainer = document.getElementById('templatePreviewContainer');
+
+            // 🔧 CSAK választott sablon esetén legyen látható
+            const hasSelected = !!templateSelect.value;
+            previewContainer.style.display = (sendMode === "sablon" && hasSelected) ? "block" : "none";
+            if (!hasSelected) document.getElementById('templatePreview').textContent = '';
+
+            document.getElementById('templateSelectWrapper').style.display = "block";
+
+            Object.keys(whatsappTemplates).sort((a,b)=>a.localeCompare(b)).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key;
+                templateSelect.appendChild(opt);
+            });
+        }
+
+        async function loadTemplatesFiltered() {
+            try {
+                // 1) Összes sablon az API-tól
+                const [allTemplates, questionnaires] = await Promise.all([
+                    fetch('/available-templates').then(r => r.json()),
+                    fetch('/all-questionnaires').then(r => r.json()).catch(() => ({}))
+                ]);
+
+                // 2) Gyűjtsük ki a kérdőív-láncban szereplő sablonneveket
+                const chained = new Set();
+                Object.values(questionnaires || {}).forEach(cfg => {
+                    const flow = cfg?.flow || cfg;        // nálad mindkét forma előfordulhat
+                    if (flow && typeof flow === 'object') {
+                        Object.keys(flow).forEach(name => chained.add(name));
+                    }
+                });
+
+                // 3) Szűrés: csak azok maradjanak, amik NEM részei a kérdőíveknek
+                const filtered = {};
+                Object.keys(allTemplates).forEach(name => {
+                    if (!chained.has(name)) filtered[name] = allTemplates[name];
+                });
+
+                // 4) Töltsük be a globális változóba és frissítsük a selectet
+                whatsappTemplates = filtered;
+                updateTemplateOptions();
+            } catch (e) {
+                console.error('❌ Sablonok szűrt betöltése sikertelen, nyers lista jön:', e);
+                // Fallback: ha valami félremegy, töltsük be szűrés nélkül
+                try {
+                    const allTemplates = await fetch('/available-templates').then(r => r.json());
+                    whatsappTemplates = allTemplates;
+                    updateTemplateOptions();
+                } catch (e2) {
+                    console.error('❌ Nem sikerült sablonokat lekérni:', e2);
+                    statusDiv.textContent = 'Nem sikerült betölteni a sablonokat.';
+                    statusDiv.style.color = 'crimson';
+                }
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) document.body.setAttribute('data-theme', savedTheme);
+
+            loadTemplatesFiltered();
+
+            updateTemplateOptions();
+
+            // Kérdőívek betöltése
+            fetch('/available-questionnaires')
+                .then(res => res.json())
+                .then(themes => {
+                    const questionnaireSelect = document.getElementById('questionnaireSelect');
+                    questionnaireSelect.innerHTML = ''; // előző opciók törlése
+                    themes.forEach(theme => {
+                        const opt = document.createElement('option');
+                        opt.value = theme;
+                        opt.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+                        questionnaireSelect.appendChild(opt);
+                    });
+                })
+                .catch(err => {
+                    console.error('❌ Nem sikerült betölteni a kérdőíveket:', err);
+                });
+            fetch('/available-template-questionnaires')
+                .then(res => res.json())
+                .then(themes => {
+                    const select2 = document.getElementById('questionnaireSelect2');
+                    select2.innerHTML = '<option value="">-- Válassz sablonos kérdőívet --</option>';
+                    themes.forEach(theme => {
+                        const opt = document.createElement('option');
+                        opt.value = theme;
+                        opt.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+                        select2.appendChild(opt);
+                    });
+                })
+                .catch(err => {
+                    console.error('❌ Nem sikerült betölteni a sablonos kérdőíveket:', err);
+                });
+
+            fetch('/first-templates')
+                .then(res => res.json())
+                .then(data => {
+                    firstTemplateMap = data;
+                    firstTemplatesLoaded = true;
+                    console.log("✅ firstTemplateMap betöltve:", firstTemplateMap);
+                })
+                .catch(err => {
+                    console.error("❌ Nem sikerült betölteni az első sablonokat:", err);
+                });
+        });
+        document.getElementById("questionnaireMode").addEventListener("change", function() {
+            const mode = this.value;
+            document.getElementById("textQuestionnaireWrapper").style.display = mode === "text" ? "block" : "none";
+            document.getElementById("templateQuestionnaireWrapper").style.display = mode === "template" ? "block" : "none";
+        });
+
+
+        templateSelect.addEventListener('change', () => {
+            const sendMode = document.getElementById('sendMode').value;
+            const selected = templateSelect.value.trim();
+            const previewContainer = document.getElementById('templatePreviewContainer');
+
+            // Csak akkor mutatjuk, ha sablon módban vagyunk ÉS van választott sablon
+            if (sendMode === "sablon" && selected) {
+                previewContainer.style.display = "block";
+            } else {
+                previewContainer.style.display = "none";
+            }
+
+            if (sendMode === "simple_template") {
+                messageBox.value = textTemplates[selected] || '';
+            } else if (sendMode === "sablon" && selected && whatsappTemplates[selected]) {
+                templateParamsDiv.innerHTML = "";
+
+                whatsappTemplates[selected].parameters.forEach((param, i) => {
+                    const label = document.createElement('label');
+                    label.textContent = `Paraméter ${i + 1}:`;
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = `param${i}`;
+                    input.placeholder = param;
+                    input.classList.add('template-param');
+
+                    input.addEventListener('input', () => {
+                        updatePreviewMessage();
+                        updateTemplatePreview();
+                    });
+
+                    templateParamsDiv.appendChild(label);
+                    templateParamsDiv.appendChild(input);
+                });
+
+                updatePreviewMessage();
+                updateTemplatePreview();
+            }
+        });
+
+
+        function updatePreviewMessage() {
+            const selectedTemplate = templateSelect.value;
+            const paramInputs = [...document.querySelectorAll('.template-param')];
+            const values = paramInputs.map(input => input.value || '');
+
+            const dummyTemplate = whatsappTemplates[selectedTemplate]?.parameters?.map((_, i) => `{{${i + 1}}}`).join(' ') || '';
+            let result = dummyTemplate;
+
+            values.forEach((val, i) => {
+                const regex = new RegExp(`\\{\\{${i + 1}\\}\\}`, 'g');
+                result = result.replace(regex, val || `{{${i + 1}}}`);
+            });
+
+            messageBox.value = result;
+        }
+
+        function updateTemplatePreview() {
+            const selected = templateSelect.value;
+            if (!whatsappTemplates[selected]) {
+                document.getElementById('templatePreview').textContent = '';
+                return;
+            }
+
+            const originalText = whatsappTemplates[selected].text || '';
+            const paramInputs = [...document.querySelectorAll('.template-param')];
+            let preview = originalText;
+
+            paramInputs.forEach((input, i) => {
+                const val = input.value || `{{${i+1}}}`;
+                const regex = new RegExp(`\\{\\{${i+1}\\}\\}`, 'g');
+                preview = preview.replace(regex, val);
+            });
+
+            document.getElementById('templatePreview').textContent = preview;
+        }
+
+        function handleResponse(data, phone, logMessage, scheduledAt = null) {
+            const statusDiv = document.getElementById('status');
+
+            const results = Array.isArray(data.results) ? data.results : [];
+            const errors = results.filter(r => r.status === 'error');
+            const successes = results.filter(r => r.status === 'success');
+
+            if (results.length) {
+                if (errors.length && successes.length) {
+                    statusDiv.textContent = `⚠️ Részben sikerült: ${successes.length} siker, ${errors.length} hiba.`;
+                    statusDiv.style.color = '#d4a017';
+                    successes.forEach(s => updateHistory(s.phone, logMessage, scheduledAt));
+                } else if (errors.length) {
+                    statusDiv.textContent = `❌ ${errors.length} hiba történt: ${errors.map(e => e.phone).join(', ')}`;
+                    statusDiv.style.color = 'crimson';
+                } else {
+                    statusDiv.textContent = `✅ Üzenet sikeresen kiküldve.`;
+                    statusDiv.style.color = 'green';
+                    successes.forEach(s => updateHistory(s.phone, logMessage, scheduledAt));
+                }
+                setTimeout(() => { statusDiv.textContent = ''; }, 4000);
+                return;
+            }
+
+            if (data.error || data.status === 'error') {
+                statusDiv.textContent = data.error || data.message || '❌ Hiba történt az üzenetküldés során.';
+                statusDiv.style.color = 'crimson';
+            } else {
+                statusDiv.textContent = '✅ Üzenet sikeresen kiküldve!';
+                statusDiv.style.color = 'green';
+                updateHistory(phone, logMessage, scheduledAt);
+            }
+            setTimeout(() => { statusDiv.textContent = ''; }, 4000);
+        }
+
+
+
+        function sendQuestionnaire() {
+            const phonesRaw = document.getElementById('phone').value.trim();
+            const mode = document.getElementById('questionnaireMode').value;
+            const scheduledTime = document.getElementById('scheduledTime').value;
+            if (!validateScheduledTimeOrShowError(statusDiv)) return;
+
+            const phones = phonesRaw
+                .split(/\s|,|;/)
+                .map(p => p.trim())
+                .filter(p => /^36\d{8,}$/.test(p));
+
+            if (phonesRaw.trim() === '') {
+                statusDiv.textContent = '📛 Kérlek, adj meg legalább egy telefonszámot.';
+                statusDiv.style.color = 'crimson';
+                return;
+            } else {
+                // ha nem üres, biztosan ne maradjon kint korábbi üzenet
+                if (statusDiv.textContent.includes('telefonszámot')) statusDiv.textContent = '';
+            }
+
+            if (mode === "text") {
+                const theme = document.getElementById('questionnaireSelect').value;
+                if (!theme) {
+                    alert("❌ Nincs kiválasztva kérdőív típus.");
+                    return;
+                }
+
+                fetch(`/kerdoivek/${theme}.json`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const questionnaire = data[theme];
+                        const firstNodeId = questionnaire.start;
+                        const firstQuestion = questionnaire.flow[firstNodeId];
+
+                        phones.forEach(phone => {
+                            if (scheduledTime) {
+                                // ⏰ IDŐZÍTETT szöveges kérdőív
+                                const payload = {
+                                    phone,
+                                    type: 'questionnaire',
+                                    content: {
+                                        message: firstQuestion.text, // <-- SZÖVEG!
+                                        content: firstNodeId,        // <-- az első csomópont azonosítója
+                                        theme                         // <-- a kiválasztott kérdőív témája
+                                    },
+                                    scheduled_time: new Date(scheduledTime).toISOString()
+                                };
+
+                                fetch('/schedule', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                })
+                                    .then(res => res.json())
+                                    .then(d => handleResponse(d, phone, `⏳ Időzített kérdőív (szöveges)`, scheduledTime));
+                            } else {
+                                // 🟢 AZONNALI szöveges kérdőív
+                                const payload = {
+                                    phone,
+                                    message: firstQuestion.text,
+                                    content: firstNodeId,
+                                    theme
+                                };
+
+                                fetch('/send-message', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                })
+                                    .then(res => res.json())
+                                    .then(d => handleResponse(d, phone, `📋 Kérdőív indítva: ${firstQuestion.text}`));
+                            }
+                        });
+                    });
+
+            } else if (mode === "template") {
+                const theme = document.getElementById('questionnaireSelect2').value;
+                const firstTemplate = firstTemplateMap[theme];
+
+                if (!firstTemplate) {
+                    console.error("❌ Nincs első sablon ehhez a témához:", theme);
+                    alert(`❌ Nem ismert sablonos kérdőív típus: ${theme}`);
+                    return;
+                }
+
+                phones.forEach(phone => {
+                    if (scheduledTime) {
+                        // ⏰ IDŐZÍTETT sablonos kérdőív
+                        const payload = {
+                            phone,
+                            type: 'questionnaire',  // <-- NAGYON FONTOS: questionnaire!
+                            content: {
+                                templateName: firstTemplate, // <-- a lánc első sablonja (first-templates endpointból)
+                                languageCode: 'hu',
+                                parameters: [],
+                                theme
+                            },
+                            scheduled_time: new Date(scheduledTime).toISOString()
+                        };
+
+                        fetch('/schedule', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        })
+                            .then(res => res.json())
+                            .then(d => handleResponse(d, phone, `⏳ Időzített kérdőív (${firstTemplate})`, scheduledTime));
+                    } else {
+                        // 🟢 AZONNALI sablonos kérdőív
+                        const payload = {
+                            phone,
+                            templateName: firstTemplate,
+                            languageCode: 'hu',
+                            parameters: [],
+                            theme
+                        };
+
+                        fetch('/send-template', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        })
+                            .then(res => res.json())
+                            .then(d => handleResponse(d, phone, `📋 Kérdőív indítva (${firstTemplate})`));
+                    }
+                });
+
+            } else {
+                alert("❌ Válassz kérdőív típust.");
+            }
+        }
+
+
+        function updateCustomMessageVisibility() {
+            const sendMode = document.getElementById('sendMode').value;
+            const egyediUzenet = document.getElementById('customMessageSection');
+            egyediUzenet.style.display = (sendMode === 'simple_template') ? 'block' : 'none';
+        }
+        function togglePhoneVisibility() {
+            const sendModeEl = document.getElementById('sendMode');
+            const phoneLabel = document.getElementById('phoneLabel');
+            const phoneInput = document.getElementById('phone');
+            const statusDiv = document.getElementById('status');
+
+            const visible = !!sendModeEl.value;  // ha van választás → látszik
+            phoneLabel.style.display = visible ? 'block' : 'none';
+            phoneInput.style.display = visible ? 'block' : 'none';
+
+            // ha elrejtjük, ne maradjon kint a „adj meg telefonszámot” hiba
+            if (!visible && statusDiv.textContent.includes('telefonszámot')) {
+                statusDiv.textContent = '';
+            }
+        }
+
+
+        /*// 🔁 Fontos: itt a sablon első neve (pl. kerdoiv1) a theme alapján legyen kiválasztva
+       const firstTemplates = {
+         kiszallitas: 'kerdoiv1',
+         munka: 'munkaq0',
+         bebi: 'bebiq0'
+       };
+
+       const firstTemplate = firstTemplates[theme];
+       if (!firstTemplate) {
+         alert("❌ Nem ismert sablonos kérdőív típus.");
+         return;
+       }*/
+
+        function updateHistory(phone, message, scheduledAt = null) {
+            const li = document.createElement('li');
+
+            const now = new Date().toLocaleTimeString('hu-HU', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+
+            let eta = '';
+            if (scheduledAt) {
+                const d = new Date(scheduledAt);
+                const when = isNaN(d) ? scheduledAt : d.toLocaleString('hu-HU', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit'
+                });
+                eta = ` • érkezik: ${when}`;
+            }
+
+            li.textContent = `[${now}] ${phone} → ${message}${eta}`;
+            historyList.prepend(li);
+        }
+
+
+        // Első betöltéskor ellenőrizzük, hogy megjelenjen-e
+        document.addEventListener('DOMContentLoaded', () => {
+            togglePhoneVisibility();
+            updateCustomMessageVisibility();
+            console.log("🟢 Gombra kattintottál");
+            const sendMode = document.getElementById('sendMode').value;
+            const type = templateTypeSelect.value;
+            const selectedTemplate = templateSelect.value;
+
+            console.log("🎯 sendMode:", sendMode);
+            console.log("📦 templateType:", type);
+            console.log("📋 kiválasztott sablon:", selectedTemplate);
+            const name = (document.getElementById('name')?.value || '').trim();
+            const phonesRaw = document.getElementById('phone').value.trim();
+
+            // Telefonszámok szétválasztása, majd ellenőrzés
+            const phones = phonesRaw
+                .split(/\s|,|;/)
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+
+            const invalidPhones = phones.filter(p => !/^36\d{8,}$/.test(p));
+            if (invalidPhones.length > 0) {
+                statusDiv.textContent = `📛 Hibás formátumú szám(ok): ${invalidPhones.join(', ')}. Kérlek, használd a 36123456789 formátumot, + jel nélkül!`;
+                statusDiv.style.color = 'crimson';
+                return;
+            }
+
+            const fileInput = document.getElementById('file');
+
+            if (phones.length === 0 && phonesRaw.trim() === '') {
+                statusDiv.textContent = '📛 Kérlek, adj meg legalább egy telefonszámot.';
+                statusDiv.style.color = 'crimson';
+                return;
+            }
+
+            if (type === 'whatsapp' && !selectedTemplate) {
+                statusDiv.textContent = '📛 WhatsApp sablon típusnál kötelező sablont választani.';
+                statusDiv.style.color = 'crimson';
+                return;
+            }
+
+            statusDiv.textContent = '📤 Üzenet(ek) küldése...';
+            statusDiv.style.color = '#777';
+
+            if (type === "text") {
+                const message = document.getElementById('message').value.trim();
+                const fullMessage = name ? `*${name}*\n\n${message}` : message;
+
+                if (fileInput.files.length > 0) {
+                    phones.forEach(phone => {
+                        const formData = new FormData();
+                        formData.append('phone', phone);
+                        formData.append('message', fullMessage);
+                        formData.append('file', fileInput.files[0]);
+
+                        fetch('/send-file-message', { method: 'POST', body: formData })
+                            .then(r => r.json()).then(d => handleResponse(d, phone, fullMessage + ' 📎'));
+                    });
+                } else {
+                    phones.forEach(phone => {
+                        const payload = { phone, message: fullMessage };
+                        fetch('/send-message', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        }).then(r => r.json()).then(d => handleResponse(d, phone, fullMessage));
+                    });
+                }
+
+            } else if (sendMode === "sablon" && type === "whatsapp") {
+                const sendMode = document.getElementById('sendMode').value;
+                const type = templateTypeSelect.value;
+                const paramInputs = [...document.querySelectorAll('.template-param')];
+                const parameters = paramInputs.map(input => input.value.trim());
+
+                phones.forEach(phone => {
+                    const payload = {
+                        phone,
+                        templateName: selectedTemplate,
+                        languageCode: 'hu',
+                        parameters,
+                        //message: firstQuestion.text,
+                        //content: firstNodeId
+                    };
+
+                    fetch('/send-template', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }).then(r => r.json())
+                        .then(d => handleResponse(d, phone, `📌 ${selectedTemplate} (${parameters.join(', ')})`));
+                });
+            }
+
+            document.getElementById('templateType').addEventListener('change', updateCustomMessageVisibility);
+            document.getElementById('sendMode').addEventListener('change', updateCustomMessageVisibility);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const sendMode = document.getElementById('sendMode');
+            const sablonWrapper = document.getElementById('sablonWrapper');
+            const kerdoivWrapper = document.getElementById('kerdoivWrapper');
+            const questionnaireMode = document.getElementById('questionnaireMode');
+            const textQuestionnaireWrapper = document.getElementById('textQuestionnaireWrapper');
+            const templateQuestionnaireWrapper = document.getElementById('templateQuestionnaireWrapper');
+
+            const sendSection = document.getElementById('sendSection');
+            const questionnaireModeWrapper = document.getElementById('questionnaireModeWrapper');
+            questionnaireMode.value = 'template';
+            questionnaireModeWrapper.style.display = 'none';
+            const fileUploadWrapper = document.getElementById('fileUploadWrapper');
+            fileUploadWrapper.style.display = (sendMode.value === 'simple_template') ? 'block' : 'none';
+
+            sendMode.addEventListener('change', () => {
+                const mode = sendMode.value;
+                togglePhoneVisibility();
+                const st = document.getElementById('scheduledTime');
+                if (st) st.value = '';
+
+                // csak egyszerű üzenet esetén mutassuk a fájl/kép csatolást
+                if (mode === 'simple_template') {
+                    fileUploadWrapper.style.display = 'block';
+                } else {
+                    fileUploadWrapper.style.display = 'none';
+                }
+                const preview = document.getElementById('templatePreviewContainer');
+                preview.style.display = 'none'; // Előnézet elrejtése minden váltáskor
+                if (sendMode.value === 'sablon') {
+                    document.getElementById('templateType').value = 'whatsapp';
+                    document.getElementById('templateTypeWrapper').style.display = 'none';
+
+                    // ⛔ ha nincs kiválasztott sablon, rejtsd el és ürítsd az előnézetet
+                    const previewContainer = document.getElementById('templatePreviewContainer');
+                    if (!templateSelect.value) {
+                        previewContainer.style.display = 'none';
+                        document.getElementById('templatePreview').textContent = '';
+                        templateParamsDiv.innerHTML = '';
+                    }
+
+                    updateTemplateOptions();
+                    document.getElementById('templateType').value = 'whatsapp';
+                    document.getElementById('templateTypeWrapper').style.display = 'none';
+                    updateTemplateOptions();
+                    sablonWrapper.style.display = 'block';
+                    kerdoivWrapper.style.display = 'none';
+                    sendSection.style.display = 'block';
+                    historySection.style.display = 'block';
+                    sendMessageWrapper.style.display = 'block';
+                    sendQuestionnaireWrapper.style.display = 'none';
+
+                } else if (sendMode.value === 'simple_template') {
+                    sablonWrapper.style.display = 'none';
+                    kerdoivWrapper.style.display = 'none';
+                    sendSection.style.display = 'block';
+                    historySection.style.display = 'block';
+                    sendMessageWrapper.style.display = 'block';
+                    sendQuestionnaireWrapper.style.display = 'none';
+                    customMessageSection.style.display = 'block';
+
+                } else if (sendMode.value === 'kerdoiv') {
+                    sablonWrapper.style.display = 'none';
+                    kerdoivWrapper.style.display = 'block';
+                    sendSection.style.display = 'block';
+                    historySection.style.display = 'block';
+                    sendMessageWrapper.style.display = 'none';
+                    sendQuestionnaireWrapper.style.display = 'block';
+                    customMessageSection.style.display = 'none';
+
+                    // ⬇️ ÚJ: mód rögzítése + a mód választó elrejtése
+                    const questionnaireModeEl = document.getElementById('questionnaireMode');
+                    const questionnaireModeWrapper = document.getElementById('questionnaireModeWrapper');
+                    questionnaireModeEl.value = 'template';
+                    questionnaireModeWrapper.style.display = 'none';
+
+                    // ⬇️ ÚJ: csak a sablonos kérdőív blokk látszódjon
+                    document.getElementById('textQuestionnaireWrapper').style.display = 'none';
+                    document.getElementById('templateQuestionnaireWrapper').style.display = 'block';
+
+                } else {
+                    sablonWrapper.style.display = 'none';
+                    kerdoivWrapper.style.display = 'none';
+                    sendSection.style.display = 'none';
+                    historySection.style.display = 'none';
+                    sendMessageWrapper.style.display = 'none';
+                    sendQuestionnaireWrapper.style.display = 'none';
+                    customMessageSection.style.display = 'none';
+                }
+                updateCustomMessageVisibility();
+            });
+
+
+            questionnaireMode.addEventListener('change', () => {
+                if (questionnaireMode.value === 'text') {
+                    textQuestionnaireWrapper.style.display = 'block';
+                    templateQuestionnaireWrapper.style.display = 'none';
+                } else if (questionnaireMode.value === 'template') {
+                    textQuestionnaireWrapper.style.display = 'none';
+                    templateQuestionnaireWrapper.style.display = 'block';
+                } else {
+                    textQuestionnaireWrapper.style.display = 'none';
+                    templateQuestionnaireWrapper.style.display = 'none';
+                }
+            });
+
+            sendMode.dispatchEvent(new Event('change'));
+            questionnaireMode.dispatchEvent(new Event('change'));
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+
+            document.getElementById('sendBtn').disabled = false;
+            const sendBtn = document.getElementById('sendBtn');
+            document.getElementById('phone').addEventListener('input', () => {
+                const phoneValue = document.getElementById('phone').value.trim();
+                if (phoneValue !== '') {
+                    // ha nem üres, töröljük a hibát
+                    if (statusDiv.textContent.includes('telefonszámot')) {
+                        statusDiv.textContent = '';
+                    }
+                } else {
+                    // ha üres, újra kiírjuk a hibát
+                    statusDiv.textContent = '📛 Kérlek, adj meg legalább egy telefonszámot.';
+                    statusDiv.style.color = 'crimson';
+                }
+            });
+            sendBtn.addEventListener('click', () => {
+                sendBtn.disabled = true;
+                const statusDiv = document.getElementById('status');
+                statusDiv.textContent = '📤 Üzenet küldése folyamatban...';
+                statusDiv.style.color = '#777';
+
+                const sendMode = document.getElementById('sendMode').value;
+                const type = templateTypeSelect.value;
+                const selectedTemplate = templateSelect.value;
+                const fileInput = document.getElementById('file');
+                const name = (document.getElementById('name')?.value || '').trim();
+                const phonesRaw = document.getElementById('phone').value.trim();
+
+                const phones = phonesRaw
+                    .split(/\s|,|;/)
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0);
+
+                const invalidPhones = phones.filter(p => !/^36\d{8,}$/.test(p));
+                if (invalidPhones.length > 0) {
+                    statusDiv.textContent = `📛 Hibás formátumú szám(ok): ${invalidPhones.join(', ')}`;
+                    statusDiv.style.color = 'crimson';
+                    sendBtn.disabled = false;
+                    return;
+                }
+
+                // --- Egyszerű szöveges üzenet küldés ---
+                if (sendMode === 'simple_template') {
+                    const message = document.getElementById('message').value.trim();
+                    const scheduledTime = document.getElementById('scheduledTime').value;
+                    const fileInput = document.getElementById('file');
+                    const fullMessage = name ? `*${name}*\n\n${message}` : message;
+
+                    // ha nincs üzenet ÉS nincs fájl azonnali küldésnél
+                    if (!scheduledTime && !message && fileInput.files.length === 0) {
+                        statusDiv.textContent = '📛 Írj üzenetet VAGY csatolj fájlt/képet.';
+                        statusDiv.style.color = 'crimson';
+                        sendBtn.disabled = false;
+                        return;
+                    }
+
+                    // ⏰ IDŐZÍTETT
+                    if (scheduledTime) {
+                        let completed = 0;
+                        phones.forEach(phone => {
+                            if (fileInput.files.length > 0) {
+                                // ⏰📎 időzített MÉDIA
+                                const fd = new FormData();
+                                fd.append('phone', phone);
+                                fd.append('message', fullMessage);
+                                fd.append('scheduled_time', new Date(scheduledTime).toISOString());
+                                fd.append('file', fileInput.files[0]);
+
+                                fetch('/schedule-media', { method: 'POST', body: fd })
+                                    .then(r => r.json())
+                                    .then(d => handleResponse(d, phone, `⏳ Időzített média: ${fileInput.files[0].name}`, scheduledTime))
+                                    .finally(() => { if (++completed === phones.length) sendBtn.disabled = false; });
+
+                            } else {
+                                // ⏰📝 időzített SZÖVEG
+                                const payload = {
+                                    phone,
+                                    type: 'message',
+                                    content: fullMessage,
+                                    scheduled_time: new Date(scheduledTime).toISOString()
+                                };
+                                fetch('/schedule', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                })
+                                    .then(r => r.json())
+                                    .then(d => handleResponse(d, phone, `⏳ Üzenet időzítve: ${fullMessage}`, scheduledTime))
+                                    .finally(() => { if (++completed === phones.length) sendBtn.disabled = false; });
+                            }
+                        });
+                        return; // ne fusson tovább az azonnali ágra
+                    }
+
+                    // 🟢 AZONNALI
+                    if (fileInput.files.length > 0) {
+                        let completed = 0;
+                        phones.forEach(phone => {
+                            const fd = new FormData();
+                            fd.append('phone', phone);
+                            fd.append('message', fullMessage);
+                            fd.append('file', fileInput.files[0]);
+
+                            fetch('/send-file-message', { method: 'POST', body: fd })
+                                .then(r => r.json())
+                                .then(d => handleResponse(d, phone, fullMessage + ' 📎'))
+                                .finally(() => { if (++completed === phones.length) sendBtn.disabled = false; });
+                        });
+                    } else {
+                        let completed = 0;
+                        phones.forEach(phone => {
+                            const payload = { phone, message: fullMessage };
+                            fetch('/send-message', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            })
+                                .then(r => r.json())
+                                .then(d => handleResponse(d, phone, fullMessage))
+                                .finally(() => { if (++completed === phones.length) sendBtn.disabled = false; });
+                        });
+                    }
+                }
+                else if (sendMode === 'sablon' && type === 'whatsapp') {
+                    if (!selectedTemplate) {
+                        statusDiv.textContent = '📛 Válassz sablont.';
+                        statusDiv.style.color = 'crimson';
+                        sendBtn.disabled = false;
+                        return;
+                    }
+
+                    const scheduledTime = document.getElementById('scheduledTime').value;
+                    const paramInputs = [...document.querySelectorAll('.template-param')];
+                    const parameters = paramInputs.map(input => input.value.trim());
+
+                    let completed = 0;
+
+                    phones.forEach(phone => {
+                        if (scheduledTime) {
+                            // ⏰ IDŐZÍTETT sablonküldés
+                            const payload = {
+                                phone,
+                                type: 'template',
+                                content: {
+                                    templateName: selectedTemplate,
+                                    languageCode: 'hu',
+                                    parameters
+                                },
+                                scheduled_time: new Date(scheduledTime).toISOString()
+                            };
+
+                            fetch('/schedule', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            })
+                                .then(r => r.json())
+                                .then(d => handleResponse(d, phone, `⏳ Időzített sablon: ${selectedTemplate}`, scheduledTime))
+                                .finally(() => {
+                                    if (++completed === phones.length) sendBtn.disabled = false;
+                                });
+                        } else {
+                            // 🟢 AZONNALI sablonküldés
+                            const payload = {
+                                phone,
+                                templateName: selectedTemplate,
+                                languageCode: 'hu',
+                                parameters
+                            };
+
+                            fetch('/send-template', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            })
+                                .then(r => r.json())
+                                .then(d => handleResponse(d, phone, `📌 ${selectedTemplate} (${parameters.join(', ')})`))
+                                .finally(() => {
+                                    if (++completed === phones.length) sendBtn.disabled = false;
+                                });
+                        }
+                    });
+
+                } else {
+                    statusDiv.textContent = '📛 Válassz érvényes küldési módot.';
+                    statusDiv.style.color = 'crimson';
+                    sendBtn.disabled = false;
+                }
+            });
+        });
+
+
+    </script>
+</body>
+</html>

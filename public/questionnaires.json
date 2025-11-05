@@ -1,0 +1,75 @@
+{
+  "autovasarlas": {
+    "start": "q1",
+    "flow": {
+      "q1": {
+        "text": "Milyen autót vettél?\n1 - Audi\n2 - BMW\n3 - Mercedes",
+        "next": {
+          "1": "q2",
+          "2": "q3",
+          "3": "q4"
+        }
+      },
+      "q2": {
+        "text": "Milyen színű a Bömös?\n1 - Kék\n2 - Piros\n3 - Más",
+        "next": {
+          "1": "bmwkek",
+          "2": "bmwprios",
+          "3": "bmwmas"
+        }
+      },
+      "q3": {
+        "text": "Miléyen színű az Audi?\n1 - Kék\n2 - Piros\n3 - Más",
+        "next": {
+          "1": "audikek",
+          "2": "audipiros",
+          "3": "audimas"
+        }
+      },
+      "q4": {
+        "text": "Milyen színű a merga?\n1 - Kék\n2 - Piros\n3 - Más",
+        "next": {
+          "1": "mercikek",
+          "2": "mercipiros",
+          "3": "mercimas"
+        }
+      },
+      "bmwkek": {
+        "text": "Akkor kék bmw",
+        "next": {}
+      },
+      "bmwpiros": {
+        "text": "Akkor piros bmw",
+        "next": {}
+      },
+      "bmwmas": {
+        "text": "Akkor más színű bmw",
+        "next": {}
+      },
+      "audikek": {
+        "text": "Akkor kék audi",
+        "next": {}
+      },
+      "audipiros": {
+        "text": "Akkor piros színű audi",
+        "next": {}
+      },
+      "audimas": {
+        "text": "Akkor más színű audi",
+        "next": {}
+      },
+      "mercikek": {
+        "text": "Akkor kék merga",
+        "next": {}
+      },
+      "mercipiros": {
+        "text": "Akkor piros merga",
+        "next": {}
+      },
+      "mercimas": {
+        "text": "Akkor más színű merga",
+        "next": {}
+      }
+    }
+  }
+}

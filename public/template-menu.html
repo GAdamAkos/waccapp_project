@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WhatsApp Sablon/Kérdőív szerkesztő</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #111;
+      --accent: #26a69a;
+      --input: #f0f0f0;
+      --border: #ccc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e1e1e;
+        --text: #eee;
+        --accent: #26a69a;
+        --input: #2c2c2c;
+        --border: #444;
+      }
+    }
+    [data-theme="dark"] {
+      --bg: #1e1e1e;
+      --text: #eee;
+      --input: #2c2c2c;
+      --border: #444;
+    }
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --text: #000000;
+      --input: #f0f0f0;
+      --border: #ccc;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      transition: background .3s, color .3s;
+    }
+
+    .container {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,.1);
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .theme-toggle { text-align: center; margin-bottom: 1rem; }
+    .theme-toggle button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;   /* <- ettől lesz azonos méret az index-szel */
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    label { display:block; margin-top: 1rem; font-weight: 500; }
+
+    select {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.3rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--input);
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    button.action {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+    button.action:hover { background: #00796b; }
+
+    .info {
+      background: var(--input);
+      color: var(--text);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="theme-toggle">
+    <button onclick="toggleTheme()">🌓 Téma váltása</button>
+  </div>
+
+  <h1>Szerkesztő</h1>
+
+  <label for="modeSelect">Mit szeretnél küldeni?</label>
+  <select id="modeSelect">
+    <option value="">-- Válassz típust --</option>
+    <option value="single">Egyszerű sablon (Meta)</option>
+    <option value="chain">Kérdőív (láncolt sablonok)</option>
+  </select>
+
+  <div class="info">
+    Válaszd ki, hogy egy önálló sablont szeretnél létrehozni (Meta felé),
+    vagy egy láncolt kérdőívet, amit a rendszer a <code>questionnaire.js</code>-ben tárol.
+  </div>
+
+  <button class="action" onclick="location.href='menu.html'">Vissza a menübe</button>
+</div>
+
+<script>
+  function applyTheme(theme){
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }
+  function toggleTheme(){
+    const cur = localStorage.getItem('theme') || 'light';
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(localStorage.getItem('theme') || 'light');
+    const sel = document.getElementById('modeSelect');
+    sel.addEventListener('change', () => {
+      if (sel.value === 'single') location.href = 'template-single.html';
+      if (sel.value === 'chain')  location.href = 'template.html';
+    });
+  });
+</script>
+</body>
+</html>

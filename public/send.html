@@ -1,0 +1,54 @@
+<!-- public/send.html -->
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp üzenetküldés</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 500px;
+      margin: auto;
+    }
+    label, input, textarea, button {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>📨 WhatsApp üzenetküldő</h1>
+
+  <form id="messageForm">
+    <label for="phone">Telefonszám (pl. 36301234567):</label>
+    <input type="text" id="phone" name="phone" required />
+
+    <label for="message">Üzenet szövege:</label>
+    <textarea id="message" name="message" rows="4" required></textarea>
+
+    <button type="submit">Küldés</button>
+  </form>
+
+  <p id="responseMessage"></p>
+
+  <script>
+    document.getElementById('messageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value;
+      const message = document.getElementById('message').value;
+
+      const response = await fetch('/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message }),
+      });
+
+      const result = await response.json();
+      document.getElementById('responseMessage').textContent = result.message;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>WhatsApp Csevegés</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #111;
+      --accent: #26a69a;
+      --input: #f0f0f0;
+      --border: #ccc;
+      --bubble-received: #ffffff;
+      --bubble-sent: #dcf8c6;
+      --chat-header-bg: #e5ddd5;
+      --chat-background: #f0f2f5;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e1e1e;
+        --text: #eee;
+        --accent: #26a69a;
+        --input: #2c2c2c;
+        --border: #444;
+        --bubble-received: #2e2e2e;
+        --bubble-sent: #3b4b3b;
+      }
+    }
+
+    [data-theme="dark"] {
+      --bg: #1e1e1e;
+      --text: #eee;
+      --input: #2c2c2c;
+      --border: #444;
+      --bubble-received: #2e2e2e;
+      --bubble-sent: #3b4b3b;
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --text: #111;
+      --input: #f0f0f0;
+      --border: #ccc;
+      --bubble-received: #ffffff;
+      --bubble-sent: #dcf8c6;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    /* Egységes témaváltó (mint index / template-* oldalakon) */
+    .theme-toggle{
+      text-align: center;
+      margin: 1rem 0;
+      padding: 0;                 /* ne legyen extra belső margó */
+    }
+    .theme-toggle button{
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;            /* egységes méret */
+      padding: 0;                 /* link-szerű megjelenés */
+    }
+
+    .filter-panel {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: var(--input);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+    }
+
+    .filter-panel h2 {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .filter-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button {
+      width: 10%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1e837b;
+    }
+
+    .message {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      max-width: 60%;
+      padding: 0.35rem 0.65rem;
+      border-radius: 1.2rem;
+      font-size: 0.95rem;
+      line-height: 1.25;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      background-color: var(--bubble-received);
+      color: var(--text);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin: 0.1rem 0;
+    }
+
+    .message > :first-child {
+      min-height: unset;
+    }
+
+    .sent {
+      background-color: var(--bubble-sent);
+      align-self: flex-end;
+      border-bottom-right-radius: 0.3rem;
+      border-top-left-radius: 1.2rem;
+      border-top-right-radius: 1.2rem;
+      position: relative;
+    }
+
+    .sent::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      bottom: 0.6rem;
+      width: 0;
+      height: 0;
+      border-left: 6px solid var(--bubble-sent);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+    }
+
+    .received {
+      background-color: var(--bubble-received);
+      align-self: flex-start;
+      border-bottom-left-radius: 0.3rem;
+      border-top-left-radius: 1.2rem;
+      border-top-right-radius: 1.2rem;
+      position: relative;
+    }
+
+    .received::after {
+      content: "";
+      position: absolute;
+      left: -6px;
+      bottom: 0.6rem;
+      width: 0;
+      height: 0;
+      border-right: 6px solid var(--bubble-received);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+    }
+
+    .meta {
+      font-size: 0.7rem;
+      color: #888;
+      margin-top: 0.2rem;
+      text-align: right;
+      line-height: 1.1;
+      opacity: 0.75;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .meta {
+        color: #aaa;
+        opacity: 0.6;
+      }
+    }
+
+    .type-label {
+      font-size: 0.7rem;
+      background: #888;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-left: 8px;
+    }
+
+    #messageInputContainer {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--input);
+      flex-shrink: 0;
+    }
+
+    #messageInputContainer > .attach-button,
+    #sendButton {
+      align-self: center;
+    }
+
+    #messageInput {
+      flex: 1;
+      min-height: 2rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      border-radius: 1.5rem;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: var(--text);
+      resize: none;
+    }
+
+    .attach-button {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      background-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: none;
+      padding: 0;
+    }
+
+    .attach-button:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .attach-button svg {
+      fill: var(--accent);
+    }
+
+    #sendButton {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      border: none;
+      background-color: var(--accent);
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    #sendButton:hover {
+      background-color: #1e837b;
+    }
+
+    #sendStatus {
+      font-size: 0.9rem;
+      text-align: center;
+      color: green;
+      margin: 0.25rem auto 1rem;
+      background: #d4fcd4;
+      padding: 0.25rem 0.75rem;
+      border-radius: 8px;
+      max-width: 90%;
+      display: none; /* alapból rejtve */
+    }
+
+    .chat-wrapper {
+      display: none;
+      flex-direction: column;
+      height: 80vh;
+      max-width: 700px;
+      margin: 1.5rem auto 0; /* 🔹 itt a kulcs! */
+      background: var(--chat-background);
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    .chat-header {
+      background: var(--chat-header-bg);
+      color: #000;
+      height: 3rem;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      gap: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .chat-header span {
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    #chatTitle {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .back-button {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #000;
+      cursor: pointer;
+      padding: 0 0.5rem;
+      margin: 0;  /* nincs szükség margin-right-ra */
+      flex-shrink: 0;
+    }
+
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .chat-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      overflow: hidden;
+      flex: 1;
+    }
+    .chat-title-wrapper #chatTitle {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      background: #25d366;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .avatar-circle {
+      width: 28px;
+      height: 28px;
+      background-color: #25d366;
+      color: white;
+      font-weight: bold;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.9rem;
+    }
+
+    .chat-title-text {
+      font-size: 1rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    #chatTitle {
+      font-size: 1rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .contact-list {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+      border-radius: 0.5rem;
+    }
+
+    .contact-item:hover {
+      background: var(--input);
+    }
+
+    .contact-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background-color: #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .contact-name {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .contact-last {
+      font-size: 0.85rem;
+      color: #888;
+      flex-shrink: 0;
+    }
+
+    #contactList {
+      max-width: 600px;
+      height: 50vh;
+      overflow-y: auto;
+      margin: 2rem auto;
+      background: var(--input);
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .menu-button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      max-width: 300px;
+      width: 100%;
+    }
+
+    .menu-button:hover {
+      background-color: #1e837b;
+    }
+
+    #fileStatus {
+      display: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      border: none;
+    }
+
+    .file-preview {
+      font-size: 0.85rem;
+      color: var(--text);
+      background-color: rgba(200, 255, 200, 0.15);
+      padding: 0.2rem 0.6rem;
+      margin-top: 0.3rem;
+      border-radius: 0.5rem;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hidden-status {
+      display: none;
+    }
+
+    .visible-status {
+      display: inline-block;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .file-preview {
+        background-color: rgba(100, 255, 100, 0.15);
+        color: #000; /* 🟢 Jól látható fekete szöveg dark módban is */
+        font-weight: bold;
+      }
+    }
+
+    .date-divider {
+      text-align: center;
+      font-weight: bold;
+      margin: 1rem 0 0.5rem;
+      color:#000;
+      font-size: 0.9rem;
+      opacity: 0.75;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.3rem;
+    }
+    input[type="date"],
+    input[type="datetime-local"]{ color:#000 !important; }
+
+    .delivery-status {
+      position: absolute;
+      bottom: 0.3rem;
+      right: 0.5rem;
+      font-size: 0.75rem;
+      opacity: 0.75;
+      pointer-events: none;
+    }
+    /* Ne kapjon háttért a témaváltó gomb */
+    .theme-toggle button{
+      background: transparent !important;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      padding: 0;                 /* link-szerű */
+    }
+
+    .theme-toggle button:hover,
+    .theme-toggle button:focus,
+    .theme-toggle button:active{
+      background: transparent !important;  /* felülírja a globális button:hover-t */
+      box-shadow: none !important;
+      outline: none;
+    }
+
+
+  </style>
+</head>
+<body>
+<div class="theme-toggle">
+  <button onclick="toggleTheme()">🌓 Téma váltása</button>
+</div>
+
+<div id="chatIntro">
+  <h1>WhatsApp Csevegés</h1>
+  <h2 style="text-align: center; margin-top: -1rem;">Válassz kontaktot</h2>
+</div>
+
+<div id="contactList" class="contact-list"></div>
+<div style="text-align: center; margin: 1.5rem 0;" id="menuBackButton">
+  <button class="menu-button" onclick="window.location.href='menu.html'">
+    Vissza a menübe
+  </button>
+</div>
+
+<div class="filter-panel" style="display: none;">
+  <h2>Adj meg szűrési feltételeket</h2>
+
+  <div class="filter-group">
+    <label for="filterName">👤 Név (választható):</label>
+    <select id="filterName">
+      <option value="">-- Összes név --</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="filterPhone">📱 Telefonszám (választható):</label>
+    <select id="filterPhone">
+      <option value="">-- Összes szám --</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="filterType">🏷️ Típus:</label>
+    <select id="filterType">
+      <option value="">-- Összes típus --</option>
+      <option value="text">📝 Szöveg</option>
+      <option value="image">🖼️ Kép</option>
+      <option value="document">📎 Dokumentum</option>
+      <option value="template">📑 Sablon</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>📅 Dátum intervallum:</label>
+    <input type="date" id="startDate" />
+    <input type="date" id="endDate" style="margin-top: 0.5rem;" />
+  </div>
+
+  <button onclick="applyFilter()">🔎 Szűrés indítása</button>
+
+  <div style="margin-top: 2rem; text-align: center;">
+    <button onclick="window.location.href='dashboard.html'">
+      Vissza a menübe
+    </button>
+  </div>
+</div>
+
+
+<div class="chat-wrapper" id="chatWrapper">
+  <div class="chat-header">
+    <button class="back-button" onclick="goBackToFilters()">←</button>
+    <div class="chat-title-wrapper">
+      <div class="avatar-circle" id="chatAvatar">👤</div>
+      <div class="chat-title-text" id="chatTitle">Név vagy szám</div>
+    </div>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+
+  <div id="messageInputContainer" style="display: none;">
+    <textarea id="messageInput" rows="2" placeholder="Írd be az üzenetet..."></textarea>
+
+    <label for="fileInput" class="attach-button" title="Fájl csatolása">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M4.5 6.5v5a3.5 3.5 0 0 0 7 0V4a2.5 2.5 0 0 0-5 0v7a1.5 1.5 0 0 0 3 0V5h1v6a2.5 2.5 0 0 1-5 0V4a3.5 3.5 0 0 1 7 0v7a4.5 4.5 0 0 1-9 0v-5h1z"/>
+      </svg>
+    </label>
+    <input type="file" id="fileInput" style="display: none;" />
+
+    <label for="imageInput" class="attach-button" title="Kép csatolása">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M14.002 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12zM14 2h-12a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM5 8a1.5 1.5 0 1 0-3.001-.001A1.5 1.5 0 0 0 5 8zm4 2 2.5 3h-9L6 9l2 2z"/>
+      </svg>
+    </label>
+    <input type="file" id="imageInput" accept="image/*" style="display: none;" />
+
+    <button id="sendButton" class="attach-button" onclick="sendMessage()" title="Üzenet küldése">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+        <path fill="currentColor"
+              d="M2 21l21-9L2 3v7l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="selectedFileName" class="file-preview hidden-status"></div>
+
+  <div id="sendStatus"></div>
+</div>
+
+<script>
+  let allMessages = [];
+  let contactMap = {};
+  let nameToPhone = {};
+  let phoneToName = {};
+  let templateMap = {};
+  let selectedPhone = null;
+  let selectedName = null;
+
+  let questionMap = {};
+
+  async function buildQuestionMap() {
+    try {
+      const response = await fetch('/available-questionnaires');
+      const filenames = await response.json();
+
+      for (const name of filenames) {
+        const res = await fetch(`/kerdoivek/${name}.json`);
+        const data = await res.json();
+        const theme = Object.keys(data)[0];
+        const flow = data[theme]?.flow || {};
+        for (const qid in flow) {
+          if (!questionMap[qid]) {
+            questionMap[qid] = flow[qid].text;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Hiba a kérdések betöltésekor:', err);
+    }
+  }
+
+  function toggleTheme() {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) document.body.setAttribute('data-theme', savedTheme);
+    await buildQuestionMap();
+    await fetchData();
+
+    const fileInput = document.getElementById('fileInput');
+    const imageInput = document.getElementById('imageInput');
+    const statusDiv = document.getElementById('selectedFileName'); // vagy: selectedFileName ha átnevezted
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        statusDiv.textContent = `📎 ${file.name}`;
+        statusDiv.classList.remove('hidden-status');
+        statusDiv.classList.add('visible-status');
+        imageInput.value = ''; // törli a másik inputot
+      } else {
+        statusDiv.textContent = '';
+        statusDiv.classList.remove('visible-status');
+        statusDiv.classList.add('hidden-status');
+      }
+    });
+
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (file) {
+        statusDiv.textContent = `🖼️ ${file.name}`;
+        statusDiv.classList.remove('hidden-status');
+        statusDiv.classList.add('visible-status');
+        fileInput.value = ''; // törli a másik inputot
+      } else {
+        statusDiv.textContent = '';
+        statusDiv.classList.remove('visible-status');
+        statusDiv.classList.add('hidden-status');
+      }
+    });
+    // 🆕 Kontaktlista automatikus frissítése 5 másodpercenként
+    setInterval(() => {
+      if (!activeChatPhone) {
+        fetchData(); // csak akkor frissítjük, ha nem beszélgetésben vagyunk
+      }
+    }, 5000);
+  });
+
+  async function fetchData() {
+    try {
+      const [inbox, sent, templates] = await Promise.all([
+        fetch('/messages').then(res => res.json()),
+        fetch('/sent-messages').then(res => res.json()),
+        fetch('/available-templates').then(res => res.json())
+      ]);
+
+      templateMap = templates;
+      contactMap = {};
+      nameToPhone = {};
+      phoneToName = {};
+
+      const incoming = inbox.map(m => {
+        const phone = m.Phone_number;
+        const name  = (m.Name && m.Name.trim()) || `👤 ${phone}`;
+        contactMap[phone] = name;
+        nameToPhone[name] = phone;
+        phoneToName[phone] = name;
+
+        const rawBody = (m.Body || '').trim();
+        let normalizedType = (m.Type || '').trim().toLowerCase();
+        let media = '';
+
+        // Ha nincs korrekt típus megadva, a BODY alapján következtetünk
+        if (!normalizedType || normalizedType === 'media') {
+          if (isImageUrl(rawBody)) {
+            normalizedType = 'image';
+            media = normalizeMediaUrl(rawBody);
+          } else if (looksLikeFileOrUrl(rawBody)) {
+            normalizedType = 'document';
+            media = normalizeMediaUrl(rawBody);
+          } else {
+            normalizedType = 'text';
+          }
+        } else if (normalizedType === 'image' || normalizedType === 'document') {
+          // Ha eleve média, itt normalizáljuk az URL-t
+          media = normalizeMediaUrl(rawBody);
+        }
+
+        return {
+          direction: 'received',
+          name,
+          phone,
+          timestamp: new Date(m.Received_at),
+          type: normalizedType,
+          // 🔸 SZÖVEGNÉL az eredeti szöveg kell, nem URL-esítve!
+          content: normalizedType === 'text' ? rawBody : '',
+          media
+        };
+      });
+
+
+
+      const outgoing = sent
+              .map(m => {
+                const phone = m.phone;
+                const name  = contactMap[phone] || `👤 ${phone}`;
+                if (!phoneToName[phone]) phoneToName[phone] = name;
+                if (!nameToPhone[name])  nameToPhone[name]  = phone;
+
+                const mediaUrl = normalizeMediaUrl(m.media_url || '');
+
+                let normalizedType = (m.type || '').trim().toLowerCase();
+                if (!normalizedType || normalizedType === 'media') {
+                  if (isImageUrl(mediaUrl)) normalizedType = 'image';
+                  else if (mediaUrl)        normalizedType = 'document';
+                  else                      normalizedType = 'text';
+                }
+
+                return {
+                  direction: 'sent',
+                  name,
+                  phone,
+                  timestamp: new Date(m.timestamp),
+                  type: normalizedType,
+                  content: (m.content || '').trim(),
+                  media: mediaUrl
+                };
+              })
+              // ⛔️ üres kimenő sorok kiszűrése (ne legyen „üres zöld buborék”)
+              .filter(msg =>
+                      ['image','document','template'].includes(msg.type) ||
+                      (msg.content && msg.content !== '') ||
+                      (msg.media && msg.media !== '')
+              );
+
+
+      allMessages = [...incoming, ...outgoing].sort((a, b) => a.timestamp - b.timestamp);
+      populateFilters();
+      setupSync();
+    } catch (err) {
+      console.error('❌ Hiba a fetchData során:', err);
+      const el = document.getElementById('chatBody');
+      if (el) el.innerHTML = '<p style="text-align:center; color: crimson;">Nem sikerült betölteni az üzeneteket.</p>';
+    }
+
+    renderContactList();
+  }
+
+  function populateFilters() {
+    const nameSet = new Set();
+    const phoneSet = new Set();
+    const validNameToPhone = {};
+
+    allMessages.forEach(m => {
+      // Telefonszám normalizálása
+      let phone = m.phone?.trim().replace(/\D/g, '') || '';
+      if (phone.startsWith('06')) phone = '36' + phone.slice(2);
+      else if (phone.startsWith('0036')) phone = '36' + phone.slice(4);
+      else if (phone.startsWith('+36')) phone = '36' + phone.slice(3);
+      phoneSet.add(phone);
+
+      // Név szűrése – kizárjuk, ami telefonszámnak tűnik
+      const name = m.name?.trim() || '';
+      const looksLikePhone = /^(\+?36|0036|06)?[\d\s\-]{6,}$/.test(name);
+      if (name && !looksLikePhone) {
+        nameSet.add(name);
+        validNameToPhone[name] = phone;
+      }
+    });
+
+    const nameSelect = document.getElementById('filterName');
+    const phoneSelect = document.getElementById('filterPhone');
+
+    nameSelect.innerHTML = '<option value="">-- Összes név --</option>';
+    phoneSelect.innerHTML = '<option value="">-- Összes szám --</option>';
+
+    [...nameSet].sort().forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      nameSelect.appendChild(opt);
+    });
+
+    [...phoneSet].sort().forEach(phone => {
+      const opt = document.createElement('option');
+      opt.value = phone;
+      opt.textContent = phone;
+      phoneSelect.appendChild(opt);
+    });
+  }
+
+  function renderContactList() {
+    const container = document.getElementById('contactList');
+    container.innerHTML = '';
+
+    const latestByContact = {};
+
+    // Legutolsó üzenetek mentése kontaktonként
+    allMessages.forEach(msg => {
+      const key = msg.name || msg.phone;
+      if (!latestByContact[key] || msg.timestamp > latestByContact[key].timestamp) {
+        latestByContact[key] = msg;
+      }
+    });
+
+    // Rendezzük őket idő szerint
+    const sortedContacts = Object.values(latestByContact).sort((a, b) => b.timestamp - a.timestamp);
+
+    sortedContacts.forEach(contact => {
+      const item = document.createElement('div');
+      item.className = 'contact-item';
+      item.onclick = () => openChat(contact.name, contact.phone);
+
+      const initials = (contact.name || contact.phone).trim().charAt(0).toUpperCase();
+
+      // 🔍 Utolsó üzenet szövegének meghatározása
+      let previewText = (contact.content || '').trim();
+
+      if (contact.type === 'image') {
+        previewText = '🖼️ Kép';
+      } else if (contact.type === 'document') {
+        previewText = '📎 Dokumentum';
+      } else if (questionMap[previewText]) {
+        previewText = questionMap[previewText];
+      } else if (templateMap[previewText]?.text) {
+        previewText = templateMap[previewText].text;
+      } else if (previewText.length > 40) {
+        previewText = previewText.slice(0, 40) + '...';
+      }
+
+      item.innerHTML = `
+        <div class="contact-avatar">${initials}</div>
+        <div style="flex: 1; display: flex; flex-direction: column;">
+          <div class="contact-name">${contact.name || contact.phone}</div>
+          <div style="font-size: 0.85rem; color: #888;">${previewText}</div>
+        </div>
+        <div class="contact-last">${formatDate(contact.timestamp)}</div>
+      `;
+
+      container.appendChild(item);
+    });
+  }
+
+  // Segédfüggvény a dátumhoz
+  function formatDate(date) {
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString();
+  }
+
+  function setupSync() {
+    const nameSelect = document.getElementById('filterName');
+    const phoneSelect = document.getElementById('filterPhone');
+
+    nameSelect.addEventListener('change', () => {
+      const name = nameSelect.value;
+      const phone = nameToPhone[name] || '';
+      phoneSelect.value = phone;
+    });
+
+    phoneSelect.addEventListener('change', () => {
+      const phone = phoneSelect.value;
+      const name = phoneToName[phone] || '';
+      nameSelect.value = name;
+    });
+  }
+
+  function openChat(name, phone) {
+    document.getElementById('filterName').value = name;
+    document.getElementById('filterPhone').value = phone;
+    applyFilter();
+    document.getElementById('contactList').style.display = 'none';
+    document.getElementById('chatIntro').style.display = 'none';
+    document.getElementById('menuBackButton').style.display = 'none';
+    activeChatPhone = phone;
+    startPolling();
+    selectedPhone = phone;
+    selectedName = name;
+  }
+
+  function applyFilter() {
+    const name = document.getElementById('filterName').value;
+    const phone = document.getElementById('filterPhone').value;
+    const type = document.getElementById('filterType').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    let filtered = allMessages;
+    if (name) filtered = filtered.filter(msg => msg.name === name);
+    if (phone) filtered = filtered.filter(msg => msg.phone === phone);
+    if (type) filtered = filtered.filter(msg => msg.type === type);
+    if (startDate) filtered = filtered.filter(msg => msg.timestamp >= new Date(startDate));
+    if (endDate) filtered = filtered.filter(msg => msg.timestamp <= new Date(endDate + 'T23:59:59'));
+
+    if (name || phone) {
+      const displayName = name?.trim() || phoneToName[phone]?.trim() || phone;
+
+      // 🧠 Fejléc név frissítés
+      document.getElementById('chatTitle').textContent = displayName;
+
+      // 👤 Avatar karakter kiszámítása és beállítása
+      const avatarChar = displayName.trim().charAt(0).toUpperCase();
+      document.getElementById('chatAvatar').textContent =
+              avatarChar.match(/[A-Z0-9]/i) ? avatarChar : '👤';
+
+      // 💬 Üzenetek megjelenítése
+      showMessages(filtered);
+
+      // 🔧 UI elemek beállítása
+      document.querySelector('.filter-panel').style.display = 'none';
+      document.getElementById('chatWrapper').style.display = 'flex';
+      document.getElementById('messageInputContainer').style.display = 'flex';
+    }
+  }
+
+  function goBackToFilters() {
+    document.getElementById('chatWrapper').style.display = 'none';
+    document.getElementById('contactList').style.display = 'block';
+    document.getElementById('messageInputContainer').style.display = 'none';
+    document.getElementById('chatIntro').style.display = 'block';
+    document.getElementById('menuBackButton').style.display = 'block';
+    activeChatPhone = null;
+    stopPolling();
+
+    // 🔄 mezők törlése és státusz elrejtése
+    document.getElementById('messageInput').value = '';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('imageInput').value = '';
+
+    const fileStatus = document.getElementById('selectedFileName');
+    fileStatus.textContent = '';
+    fileStatus.classList.remove('visible-status');
+    fileStatus.classList.add('hidden-status');
+  }
+  function normalizeMediaUrl(url) {
+    if (!url) return '';
+
+    // sztring + trim
+    url = String(url).trim().replace(/^['"]|['"]$/g, '');
+
+    // Windows backslash → forward slash
+    url = url.replace(/\\/g, '/');
+
+    // ha bármi absolute FS útvonalat kaptunk, vágjunk a /public/ részig
+    // pl. C:/.../public/sent_media/xx.jpg  →  /sent_media/xx.jpg
+    url = url.replace(/^.*\/public\//i, '/');
+
+    // ha még "public/..." formában áll, csapjuk le
+    url = url.replace(/^\.?\/?public\//i, '/');
+
+    // ha nem http(s), legyen leading slash
+    if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) {
+      url = '/' + url;
+    }
+
+    // szóközök, ékezetek stb.
+    return encodeURI(url);
+  }
+
+
+  function isImageUrl(url) {
+    return /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(url || '');
+  }
+  function looksLikeFileOrUrl(s) {
+    if (!s) return false;
+    const str = String(s).trim();
+    if (/^https?:\/\//i.test(str)) return true;
+    if (/\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(str)) return true;
+    if (/^\/?(public\/)?(sent_|received_)?(media|uploads)\//i.test(str)) return true;
+    return false;
+  }
+  function safeFileName(name) {
+    if (!name) return 'file';
+    return name
+            .normalize('NFKD')               // ékezetek bontása
+            .replace(/[\u0300-\u036f]/g, '') // ékezetek törlése
+            .replace(/[^a-zA-Z0-9._-]/g, '_')// nem ASCII -> _
+            .replace(/_+/g, '_')             // több _ egyre
+            .slice(0, 100);                  // ne legyen túl hosszú
+  }
+  function showMessages(messages) {
+    const chatEl = document.getElementById('chatBody');
+    chatEl.innerHTML = '';
+
+    if (messages.length === 0) {
+      chatEl.innerHTML = '<p style="text-align:center;">📭 Nincs találat a megadott feltételekre.</p>';
+      return;
+    }
+    messages = messages.filter(m =>
+            ['image','document','template'].includes(m.type) ||
+            (m.content && m.content.trim() !== '') ||
+            (m.media && m.media.trim() !== '')
+    );
+    let lastDate = null;
+
+    messages.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = `message ${msg.direction}`;
+      let body = '';
+
+      // Üzenet tartalom feldolgozása típus szerint
+      // Üzenet tartalom feldolgozása típus szerint
+      if (msg.type === 'image' || msg.type === 'media') {
+        // forrás kiválasztása és normalizálása
+        let src = normalizeMediaUrl(msg.media || msg.content || '');
+
+        // ha "media", de a kiterjesztés alapján nem kép → doksi link
+        if (msg.type === 'media' && src && !isImageUrl(src)) {
+          body = `<a href="${src}" target="_blank">📎 Dokumentum megnyitása</a>`;
+        } else {
+          body = src
+                  ? `<img src="${src}" alt="Kép" style="max-width:100%; border-radius:6px;" onerror="console.warn('IMG 404:', this.src)">`
+                  : '<em>(kép nem elérhető)</em>';
+        }
+
+
+      } else if (msg.type === 'document') {
+        let link = normalizeMediaUrl(msg.media || msg.content || '');
+        body = link
+                ? `<a href="${link}" target="_blank">📎 Dokumentum megnyitása</a>`
+                : '<em>(dokumentum nem elérhető)</em>';
+
+
+      } else if (msg.type === 'template') {
+        try {
+          let tplName = '';
+          let paramValues = [];
+
+          const raw = (msg.content || '').trim();
+          if (raw.startsWith('{')) {
+            const parsed = JSON.parse(raw);
+            tplName = parsed.template || 'ismeretlen_sablon';
+            paramValues = parsed.parameters || [];
+          } else {
+            tplName = raw;
+          }
+
+          const templateData = templateMap[tplName];
+          if (templateData && templateData.text) {
+            let text = templateData.text;
+
+            if (/\{\{\d+\}\}/.test(text)) {
+              paramValues.forEach((val, i) => {
+                const regex = new RegExp(`\\{\\{${i + 1}\\}\\}`, 'g');
+                text = text.replace(regex, val);
+              });
+            } else if (/\{\{\}\}/.test(text)) {
+              paramValues.forEach(val => {
+                text = text.replace(/\{\{\}\}/, val);
+              });
+            }
+
+            body = `<div style="white-space:pre-wrap;">${text}</div>`;
+          } else {
+            body = `<div><em>Sablon nem található vagy üres.</em></div>`;
+          }
+        } catch {
+          body = `<div><strong>Hibás sablonformátum:</strong><br>${msg.content || '<em>üres</em>'}</div>`;
+        }
+
+      } else {
+        // Szabad szöveg vagy kérdőívkód
+        const raw = msg.content?.trim() || '';
+        body = questionMap[raw] || raw;
+      }
+
+
+      // Dátumcímke (ha új nap)
+      const currentDate = msg.timestamp.toDateString();
+      if (lastDate !== currentDate) {
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'date-divider';
+
+        const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        if (currentDate === today) {
+          dateDiv.textContent = '📅 Ma';
+        } else if (currentDate === yesterday) {
+          dateDiv.textContent = '📅 Tegnap';
+        } else {
+          dateDiv.textContent = `📅 ${msg.timestamp.toLocaleDateString()}`;
+        }
+        dateDiv.style.color = '#000'; // ⬅️ minden esetben fekete
+
+        chatEl.appendChild(dateDiv);
+        lastDate = currentDate;
+      }
+
+      // Üzenet tartalom hozzáadása
+      const contentWrapper = document.createElement('div');
+      if (msg.type === 'template' || body.includes('<')) {
+        contentWrapper.innerHTML = body;  // sablonos üzenetek vagy HTML
+      } else {
+        contentWrapper.textContent = body;  // szöveg
+      }
+      div.appendChild(contentWrapper);
+
+      // Időbélyeg hozzáadása
+      const timeLabel = msg.timestamp.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = msg.direction === 'sent'
+              ? `${timeLabel} <span class="status-icon">✔️</span>`
+              : timeLabel;
+
+      div.appendChild(meta);
+      chatEl.appendChild(div);
+    });
+
+    // Görgetés a legalsó üzenethez
+    setTimeout(() => {
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }, 100);
+  }
+
+
+  function sendMessage() {
+    const message = document.getElementById('messageInput').value.trim();
+    const statusDiv = document.getElementById('sendStatus');
+    const fileInput = document.getElementById('fileInput');
+    const imageInput = document.getElementById('imageInput');
+    const file = fileInput.files[0];
+    const image = imageInput.files[0];
+
+    // ❌ Ne küldjön egyszerre fájlt és képet
+    if (file && image) {
+      statusDiv.textContent = '📛 Egyszerre csak egy fájl vagy kép csatolható.';
+      statusDiv.style.color = 'crimson';
+      return;
+    }
+
+    // ❌ Üres üzenet és nincs csatolmány
+    if (!message && !file && !image) {
+      statusDiv.textContent = '📛 Az üzenet nem lehet üres.';
+      statusDiv.style.color = 'crimson';
+      return;
+    }
+
+    const targetPhone = selectedPhone || (nameToPhone[selectedName] || '');
+    if (!targetPhone) {
+      statusDiv.textContent = '📛 Nem ismert a címzett telefonszáma.';
+      statusDiv.style.color = 'crimson';
+      return;
+    }
+
+    statusDiv.textContent = '📤 Küldés folyamatban...';
+    statusDiv.style.color = '#777';
+
+    if (file || image) {
+      const blob = image || file;
+      const fname = safeFileName(blob.name || (image ? 'image.jpg' : 'file.bin'));
+      const formData = new FormData();
+      formData.append('phone', targetPhone);
+
+      // egyes backendek a feliratot 'caption' néven várják
+      if (message) {
+        formData.append('message', message);
+        formData.append('caption', message);
+      }
+
+      // a legtöbb szerver 'file' kulcsot vár; adjuk mellé infónak a típust is
+      formData.append('type', image ? 'image' : 'document');
+      formData.append('file', blob, fname);
+
+      fetch('/send-file-message', {
+        method: 'POST',
+        body: formData
+      })
+              .then(async res => {
+                // robusztus JSON-kezelés (ha a szerver nem JSON-t ad vissza)
+                let data;
+                try { data = await res.json(); }
+                catch { data = { status: res.ok ? 'ok' : 'error', message: 'Nem értelmezhető szerverválasz.' }; }
+                return data;
+              })
+              .then(data => handleSendResponse(data))
+              .catch(err => {
+                const statusDiv = document.getElementById('sendStatus');
+                statusDiv.textContent = '❌ Hálózati hiba fájlküldéskor.';
+                statusDiv.style.color = 'crimson';
+              });
+    }else {
+      const payload = {
+        phone: targetPhone,
+        message: message
+      };
+
+      fetch('/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+              .then(res => res.json())
+              .then(data => handleSendResponse(data))
+              .catch(err => {
+                statusDiv.textContent = '❌ Hálózati hiba.';
+                statusDiv.style.color = 'crimson';
+              });
+    }
+  }
+
+  function handleSendResponse(data) {
+    const statusDiv = document.getElementById('sendStatus');
+    const fileStatus = document.getElementById('selectedFileName');
+
+    if (data.error || data.status === 'error') {
+      // 🔴 Hibaüzenet
+      statusDiv.textContent = data.message || '❌ Hiba történt az üzenetküldéskor.';
+      statusDiv.style.color = 'crimson';
+      statusDiv.style.display = 'block';
+
+      // ❌ Buborékba is kerül egy jelzés
+      markLastMessageAsFailed();
+
+    } else {
+      // ✅ Semmi alul, csak ✔️ a buborékban
+      statusDiv.style.display = 'none';
+
+      // 🧹 Mezők ürítése
+      document.getElementById('messageInput').value = '';
+      document.getElementById('fileInput').value = '';
+      document.getElementById('imageInput').value = '';
+      fileStatus.textContent = '';
+      fileStatus.classList.remove('visible-status');
+      fileStatus.classList.add('hidden-status');
+
+      // 🔁 Üzenetek újratöltése
+      fetchData().then(() => {
+        if (activeChatPhone) {
+          const name = phoneToName[activeChatPhone];
+          const filtered = allMessages.filter(
+                  m => m.phone === activeChatPhone || m.name === name
+          );
+          showMessages(filtered);
+
+          // ✔️ Pipát adunk az utolsó üzenethez
+          markLastMessageAsSent();
+        }
+      });
+    }
+  }
+
+  function markLastMessageAsSent() {
+    const all = document.querySelectorAll('.message.sent');
+    const last = all[all.length - 1];
+
+    if (last && !last.querySelector('.delivery-status')) {
+      const check = document.createElement('span');
+      check.className = 'delivery-status';
+      check.textContent = '✔️';
+      last.appendChild(check);
+    }
+  }
+
+  function markLastMessageAsFailed() {
+    const all = document.querySelectorAll('.message.sent');
+    const last = all[all.length - 1];
+    if (last) {
+      const error = document.createElement('span');
+      error.className = 'delivery-status';
+      error.textContent = '❌';
+      last.appendChild(error);
+    }
+  }
+
+  let pollingInterval = null;
+  let activeChatPhone = null;
+
+  function startPolling() {
+    if (pollingInterval) return; // ne induljon duplán
+
+    pollingInterval = setInterval(async () => {
+      const latest = allMessages.at(-1)?.timestamp;
+
+      await fetchData();
+
+      const newest = allMessages.at(-1)?.timestamp;
+
+      if (activeChatPhone && newest > latest) {
+        const name = phoneToName[activeChatPhone];
+        const filtered = allMessages.filter(
+                m => m.phone === activeChatPhone || m.name === name
+        );
+        showMessages(filtered);
+      }
+
+      // 🆕 Ha nincs aktív chat (tehát kontaktlistát nézünk), akkor frissítsük azt
+      if (!activeChatPhone && newest > latest) {
+        renderContactList();
+      }
+    }, 5000); // 5 másodpercenként
+  }
+
+  function stopPolling() {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1529 @@
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>💬 WhatsApp Üzenetszűrés</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #111;
+      --accent: #26a69a;
+      --input: #f0f0f0;
+      --border: #ccc;
+      --bubble-received: #ffffff;
+      --bubble-sent: #dcf8c6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e1e1e;
+        --text: #eee;
+        --input: #2c2c2c;
+        --border: #444;
+        --bubble-received: #2e2e2e;
+        --bubble-sent: #3b4b3b;
+        --chip-bg: color-mix(in oklab, var(--accent) 22%, var(--bg));
+        --chip-text: #fff;
+        --chip-border: color-mix(in oklab, var(--accent) 55%, var(--bg));
+      }
+    }
+
+    [data-theme="dark"] {
+      --bg: #1e1e1e;
+      --text: #eee;
+      --input: #2c2c2c;
+      --border: #444;
+      --bubble-received: #2e2e2e;
+      --bubble-sent: #3b4b3b;
+      --chip-bg: color-mix(in oklab, var(--accent) 35%, #000);
+      --chip-text: #eaf2f2;
+      --chip-border: color-mix(in oklab, var(--accent) 55%, #000);
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --text: #111;
+      --input: #f0f0f0;
+      --border: #ccc;
+      --bubble-received: #ffffff;
+      --bubble-sent: #dcf8c6;
+      --chip-bg: color-mix(in oklab, var(--accent) 22%, var(--bg));
+      --chip-text: var(--text);
+      --chip-border: color-mix(in oklab, var(--accent) 55%, var(--bg));
+    }
+
+    [data-theme="light"] .message{
+      background: color-mix(in oklab, var(--bg) 92%, black);
+      border: 1px solid color-mix(in oklab, var(--text) 12%, transparent);
+      box-shadow: 0 3px 8px rgba(0,0,0,.10);
+    }
+
+    [data-theme="light"] .message.sent{
+      background: color-mix(in oklab, var(--bubble-sent) 90%, white);
+      border-color: color-mix(in oklab, var(--bubble-sent) 55%, #0000);
+    }
+
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    h1{
+      text-align: center;
+      margin: 0 0 2rem;
+      font-weight: 700;     /* félkövér */
+      font-size: 2rem;      /* kicsit kisebb (~32px) */
+      line-height: 1.2;
+    }
+
+    .theme-toggle{
+      text-align: center;
+      margin-bottom: 2rem;        /* ← a negatív margin helyett */
+    }
+
+    .theme-toggle button{
+      background: transparent;   /* ne legyen „tabletta” háttér */
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: bold;         /* egységes: félkövér */
+      font-size: 1rem;           /* egységes méret */
+      padding: 0;                /* link-szerű megjelenés */
+    }
+
+    .theme-toggle button:hover,
+    .theme-toggle button:focus,
+    .theme-toggle button:active{
+      background: transparent;   /* hoverre se kapjon hátteret */
+      box-shadow: none;
+      outline: none;
+    }
+
+    .filter-panel {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: var(--input);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+    }
+
+    .filter-panel h2 {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .filter-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .filter-panel button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+    .filter-panel button:hover {
+      background-color: #1e837b;
+    }
+
+    .chat-container {
+      display: none;
+      max-width: 700px;
+      margin: 1rem auto;              /* kisebb függőleges margó */
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;                      /* pici hézag a bubik között */
+    }
+
+
+    .message{
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      max-width: 60%;
+      padding: .35rem .65rem;          /* kisebb belső padding -> nincs „üres rész” */
+      border-radius: 1.2rem;
+      line-height: 1.25;
+      font-size: .95rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      background: var(--bubble-received);
+      color: var(--text);
+      box-shadow: 0 2px 5px rgba(0,0,0,.1);
+      margin: .1rem 0;
+    }
+
+    .message.sent{
+      background: var(--bubble-sent);
+      border-bottom-right-radius: .3rem;
+      border-top-left-radius: 1.2rem;
+      border-top-right-radius: 1.2rem;
+      margin-left: auto;     /* ⬅️ erre áll át a pozicionálás */
+      align-self: auto;      /* felülírjuk az esetleges align-self-et */
+    }
+    .message.received{
+      background: var(--bubble-received);
+      border-bottom-left-radius: .3rem;
+      border-top-left-radius: 1.2rem;
+      border-top-right-radius: 1.2rem;
+      margin-right: auto;    /* ⬅️ bal szélre tolás */
+      align-self: auto;
+    }
+
+    .sent{
+      background: var(--bubble-sent);
+      align-self: flex-end;
+      border-bottom-right-radius: .3rem;
+      border-top-left-radius: 1.2rem;
+      border-top-right-radius: 1.2rem;
+    }
+
+    .received{
+      background: var(--bubble-received);
+      align-self: flex-start;
+      border-bottom-left-radius: .3rem;
+      border-top-left-radius: 1.2rem;
+      border-top-right-radius: 1.2rem;
+    }
+
+    /* Igazítás a buborék SZÉLÉHEZ */
+    .message.sent .meta{ text-align: right; }      /* jobb széle (elküldött) */
+    .message.received .meta{ text-align: left; }   /* bal széle (kapott) */
+
+    .meta{
+      width: 100%;
+      align-self: stretch;
+      margin-top: .2rem;
+      line-height: 1.1;
+      opacity: .75;
+    }
+
+    .date-divider{
+      color: var(--text);          /* ⬅️ téma színét használja, nem lesz fekete darkban */
+      text-align: center;
+      font-weight: 600;
+      margin: .75rem 0 .25rem;
+      font-size: .9rem;
+      opacity: .75;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .25rem;
+    }
+
+    .type-label {
+      font-size: 0.7rem;
+      background: #888;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-left: 8px;
+    }
+
+    #scrollTopBtn, #scrollBottomBtn {
+      position: fixed;
+      bottom: 2rem;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: none;
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: none;
+      z-index: 999;
+      transition: opacity 0.3s ease;
+    }
+
+    #scrollTopBtn { right: 2rem; }
+    #scrollBottomBtn { right: calc(2rem + 54px); }
+
+    #scrollTopBtn:hover, #scrollBottomBtn:hover {
+      background-color: rgba(0,0,0,0.8);
+    }
+
+    #answerStats .ansbtn {
+      width: auto;
+      margin: 0.25rem 0.25rem 0 0;
+      padding: .4rem .6rem;
+    }
+    #answerStats .ansbtn.active {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Akciógombok sorban */
+    .filter-actions{ display:flex; gap:.5rem; }
+    .filter-actions button{ flex:1; }
+
+    button.secondary{
+      background: var(--accent);
+      color: #fff;
+      border: none;
+    }
+    button.secondary:hover{
+      background-color: #1e837b;
+    }
+
+    /* Aktív szűrők (chippek) */
+    .active-filters{
+      max-width: 700px;
+      margin: .75rem auto 0;
+      display: none;          /* JS mutatja, ha van aktív szűrő */
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+
+    .chip{
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--chip-bg);
+      color: var(--chip-text);
+      border: 1px solid var(--chip-border);
+      padding: .22rem .6rem;          /* alacsony chip → nincs fel/le hézag */
+      border-radius: 999px;
+      line-height: 1;                 /* pontos vertikális illesztés */
+      font-size: .95rem;
+      white-space: nowrap;
+      width: auto;                    /* csak akkora, mint a tartalom */
+      max-width: 100%;
+      box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    }
+
+    .chip:hover{
+      background: color-mix(in oklab, var(--chip-bg) 85%, black);
+    }
+
+    .chip button{
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      color: currentColor;
+      font-size: 1.1rem;
+      line-height: 1;
+      opacity: .85;
+    }
+    .chip button:hover{ opacity: 1; }
+
+    .active-filters .chip button{
+      width: auto !important;         /* felülírja a button{width:100%}-t */
+      padding: 0 !important;          /* ne növelje a chip magasságát */
+      margin: 0 0 0 .25rem;
+      min-width: 0;
+      height: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      color: var(--chip-text);
+      font-size: 1.05rem;
+      line-height: 1;
+      opacity: .85;
+    }
+
+    .active-filters .chip button:hover{ opacity: 1; }
+
+    /* Találatszámláló */
+    .results-bar{
+      max-width: 700px;
+      margin: .5rem auto;
+      font-weight: 600;
+      opacity: .85;
+      display: none;                 /* JS kapcsolja */
+    }
+
+    /* Sticky „aktuális nap” sáv a lista tetején */
+    .sticky-day{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: color-mix(in oklab, var(--bg) 85%, transparent);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--border);
+      padding: .4rem .6rem;
+      max-width: 700px;
+      margin: 0 auto;
+      display: none;                 /* JS kapcsolja */
+      font-weight: 600;
+    }
+
+    .theme-toggle { text-align: center; }           /* opcionális: középre igazítás */
+    .theme-toggle button{
+      width: auto;
+      padding: 0;
+      background: none;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      color: var(--accent);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .theme-toggle button:hover,
+    .theme-toggle button:focus{
+      background: none;
+      box-shadow: none;
+    }
+
+    .filter-panel .filter-actions button,
+    .filter-panel > div > button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+    .filter-panel .filter-actions button:hover,
+    .filter-panel > div > button:hover {
+      background-color: #1e837b;
+    }
+
+  </style>
+</head>
+<body>
+<div class="theme-toggle">
+  <button onclick="toggleTheme()">🌓 Téma váltása</button>
+</div>
+
+<h1>🔍 WhatsApp Üzenetszűrés</h1>
+
+<div class="filter-panel">
+  <h2>Adj meg szűrési feltételeket</h2>
+
+  <div class="filter-group">
+    <label for="filterName">👤 Név (választható):</label>
+    <select id="filterName">
+      <option value="">-- Összes név --</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="filterPhone">📱 Telefonszám (választható):</label>
+    <select id="filterPhone">
+      <option value="">-- Összes szám --</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="filterType">🏷️ Típus:</label>
+    <select id="filterType">
+      <option value="">-- Összes típus --</option>
+      <option value="text">📝 Szöveg</option>
+      <option value="image">🖼️ Kép</option>
+      <option value="document">📎 Dokumentum</option>
+      <option value="template">📑 Sablon</option>
+      <option value="questionnaire">🧩 Kérdőív</option>
+    </select>
+  </div>
+
+  <div class="filter-group" id="themeGroup" style="display:none;">
+    <label for="filterTheme">🧩 Kérdőív témája:</label>
+    <select id="filterTheme">
+      <option value="">-- Összes kérdőív --</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="filterQuestionText" style="display:none;">❓ Kérdés (választható):</label>
+    <select id="filterQuestionText" style="display:none;">
+    </select>
+  </div>
+
+  <div id="answerStats" class="filter-group" style="display:none;"></div>
+
+  <div class="filter-group" id="directionGroup">
+    <label for="filterDirection">➡️ Irány:</label>
+    <select id="filterDirection">
+      <option value="">-- Mindkettő --</option>
+      <option value="sent">📤 Elküldött</option>
+      <option value="received">📥 Kapott</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>📅 Dátum intervallum:</label>
+    <input type="date" id="startDate" />
+    <input type="date" id="endDate" style="margin-top: 0.5rem;" />
+  </div>
+
+  <div class="filter-actions">
+    <button onclick="applyFilter(true, true)">🔎 Szűrés indítása</button>
+    <button class="secondary" onclick="clearAllFilters()">🧹 Szűrők törlése</button>
+  </div>
+
+  <!-- Aktív szűrők chippek -->
+  <div id="activeFilters" class="active-filters"></div>
+
+  <div style="margin-top: 2rem; text-align: center;">
+    <button onclick="window.location.href='menu.html'">Vissza a menübe</button>
+  </div>
+</div>
+<button id="scrollTopBtn" title="Ugrás a tetejére">⬆</button>
+<button id="scrollBottomBtn" title="Ugrás az aljára">⬇</button>
+<div id="resultsBar" class="results-bar">Találatok: 0</div>
+<div id="stickyDay" class="sticky-day"></div>
+<div class="chat-container" id="chat"></div>
+
+<script>
+  window.__flowCache = window.__flowCache || {};
+  let allMessages = [];
+  let contactMap = {};
+  let nameToPhone = {};
+  let phoneToName = {};
+  let isFiltering = false;
+  let filterParams = {};
+  let filterInterval = null;
+  let templateMap = {};
+  let questionMap = {};
+  let selectedAnswerOption = null; // pl. "Igen", "Nem", "__OTHER__", null = nincs válasz-szűrő
+  let appliedParams = {};
+
+  function toggleTheme() {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.body.setAttribute('data-theme', savedTheme);
+    }
+    await buildQuestionMap();
+    await fetchData();
+  });
+
+  /*document.getElementById('filterType').addEventListener('change', (e) => {
+    const type = e.target.value;
+    const themeGroup = document.getElementById('themeGroup');
+    const qSelect = document.getElementById('filterQuestionText');
+    const qLabel = document.querySelector('label[for="filterQuestionText"]');
+    const aInput = document.getElementById('filterAnswerText');
+    const aLabel = document.querySelector('label[for="filterAnswerText"]');
+
+    const show = type === 'questionnaire';
+
+    themeGroup.style.display = show ? 'block' : 'none';
+    qSelect.style.display = show ? 'block' : 'none';
+    qLabel.style.display = show ? 'block' : 'none';
+    aInput.style.display = show ? 'block' : 'none';
+    aLabel.style.display = show ? 'block' : 'none';
+
+    if (!show) {
+      document.getElementById('filterTheme').value = '';
+      qSelect.value = '';
+      aInput.value = '';
+    }
+  });*/
+
+  async function buildQuestionMap() {
+    try {
+      const response = await fetch('/all-questionnaires');
+      const data = await response.json(); // ez a teljes questionnaire.js tartalom
+
+      for (const theme in data) {
+        const questions = data[theme];
+        for (const qid in questions) {
+          const q = questions[qid];
+          if (q.text) {
+            questionMap[qid] = q.text;
+          }
+        }
+      }
+
+      console.log('✅ Betöltött kérdések:', questionMap);
+    } catch (err) {
+      console.error('❌ Hiba a kérdések betöltésekor (új buildQuestionMap):', err);
+    }
+  }
+
+  let listenersReady = false;
+
+  async function fetchData() {
+    const [inbox, sent, templates, themes] = await Promise.all([
+      fetch('/messages').then(res => res.json()),
+      fetch('/sent-messages').then(res => res.json()),
+      fetch('/available-templates').then(res => res.json()),
+      fetch('/questionnaire-themes').then(res => res.json())
+    ]);
+
+    // TemplateMap felépítés
+    templateMap = Object.fromEntries(
+            Object.entries(templates).map(([k, v]) => [k.trim().toLowerCase(), v])
+    );
+
+    // Témák listája
+    const themeSelect = document.getElementById('filterTheme');
+    const prevTheme = filterParams.theme || '';
+    themeSelect.innerHTML = '<option value="">-- Összes kérdőív --</option>';
+    themes.forEach(theme => {
+      const opt = document.createElement('option');
+      opt.value = theme;
+      opt.textContent = theme;
+      themeSelect.appendChild(opt);
+    });
+
+    // Contact map és üzenetek összeállítása
+    contactMap = {};
+    nameToPhone = {};
+    phoneToName = {};
+
+    const incoming = inbox.map(m => {
+      const phone = m.Phone_number;
+      const name = m.Name || '👤 Ismeretlen';
+      contactMap[phone] = name;
+      nameToPhone[name] = phone;
+      phoneToName[phone] = name;
+      return {
+        direction: 'received',
+        name,
+        phone,
+        timestamp: new Date(m.Received_at),
+        type: m.Type,
+        content: m.Body
+      };
+    });
+
+    const outgoing = sent.map(m => {
+      const phone = m.phone;
+      const name = contactMap[phone] || '👤 Ismeretlen';
+      if (!phoneToName[phone]) phoneToName[phone] = name;
+      if (!nameToPhone[name]) nameToPhone[name] = phone;
+      return {
+        direction: 'sent',
+        name,
+        phone,
+        timestamp: new Date(m.timestamp),
+        type: m.type,
+        content: m.content,
+        media: m.media_url,
+        theme: m.theme || null
+      };
+    });
+
+    allMessages = [...incoming, ...outgoing].sort((a, b) => a.timestamp - b.timestamp);
+    populateFilters();
+
+    // Csak egyszer állítjuk be a szinkronizáló listenereket
+    if (!listenersReady) {
+      setupSync();
+      listenersReady = true;
+    }
+
+    // Mezők visszaállítása
+    document.getElementById('filterName').value = filterParams.name || '';
+    document.getElementById('filterPhone').value = filterParams.phone || '';
+    document.getElementById('filterType').value = filterParams.type || '';
+    document.getElementById('startDate').value = filterParams.startDate || '';
+    document.getElementById('endDate').value = filterParams.endDate || '';
+    document.getElementById('filterDirection').value = filterParams.direction || '';
+    document.getElementById('filterTheme').value = prevTheme;
+
+    updateVisibilityForType(document.getElementById('filterType').value);
+    maybeRenderAnswerStats();
+
+    // Ha kérdőív szűrés van, töltsük vissza a mezőket
+    if (filterParams.type === 'questionnaire') {
+      showQuestionnaireFields(true);
+      if (prevTheme) {
+        await loadQuestionsForTheme(prevTheme);
+        document.getElementById('filterQuestionText').value = filterParams.questionText || '';
+      }
+      document.getElementById('filterAnswerText').value = filterParams.answerText || '';
+      maybeRenderAnswerStats();
+    }
+  }
+
+  // kis segédfüggvény a kérdőíves mezők mutatásához/elrejtéséhez
+  function showQuestionnaireFields(show) {
+    const themeGroup = document.getElementById('themeGroup');
+    const qSelect = document.getElementById('filterQuestionText');
+    const qLabel = document.querySelector('label[for="filterQuestionText"]');
+    const aInput = document.getElementById('filterAnswerText');
+    const aLabel = document.querySelector('label[for="filterAnswerText"]');
+    themeGroup.style.display = show ? 'block' : 'none';
+    qSelect.style.display = show ? 'block' : 'none';
+    qLabel.style.display = show ? 'block' : 'none';
+    aInput.style.display = show ? 'block' : 'none';
+    aLabel.style.display = show ? 'block' : 'none';
+  }
+
+  // kiszedve a themeSelect handlerből, hogy fetchData is tudja hívni
+  async function loadQuestionsForTheme(theme) {
+    window.__flowCache[theme] = {};
+    const qSelect = document.getElementById('filterQuestionText');
+    qSelect.innerHTML = '<option value="">-- Összes kérdés --</option>';
+
+    if (!theme) return; // nincs téma, nincs mit tölteni
+
+    const res = await fetch(`/get-questionnaire/${theme}`);
+    const flow = await res.json();
+    window.__flowCache[theme] = flow;
+    for (const [key, q] of Object.entries(flow)) {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = q.text ? `${q.text} (${key})` : key;
+      qSelect.appendChild(option);
+    }
+
+    // ⬇ Itt jön az általad említett kód
+    qSelect.onchange = () => {
+      selectedAnswerOption = null;  // alapból az összes
+      maybeRenderAnswerStats();    // stat frissít, a szűrést a gomb indítja
+    };
+    selectedAnswerOption = null;
+    maybeRenderAnswerStats();
+  }
+
+  document.getElementById('filterType').addEventListener('change', async (e) => {
+    const type = e.target.value;
+
+    updateVisibilityForType(type);
+    showQuestionnaireFields(type === 'questionnaire');
+
+    if (type !== 'questionnaire') {
+      // UI ürítés
+      document.getElementById('filterTheme').value = '';
+      document.getElementById('filterQuestionText').value = '';
+      document.getElementById('filterAnswerText').value = '';
+
+      // Belső állapot ürítés, hogy a chippek is eltűnjenek
+      selectedAnswerOption = null;
+      filterParams.theme = '';
+      filterParams.questionText = '';
+    } else {
+      // ha maradt korábbi téma, töltsd vissza a kérdéseit
+      const t = document.getElementById('filterTheme').value;
+      if (t) await loadQuestionsForTheme(t);
+    }
+
+    maybeRenderAnswerStats();
+    // ha azonnali újraszűrést szeretnél, ezt feloldhatod:
+    // applyFilter(true, true);
+  });
+
+
+
+  /*// és a themeSelect change handlerben is a közös loadQuestionsForTheme-t használd:
+  themeSelect.addEventListener('change', async () => {
+    const selectedTheme = themeSelect.value;
+    if (!selectedTheme) {
+      loadQuestionsForTheme(''); // ürítés
+      return;
+    }
+    await loadQuestionsForTheme(selectedTheme);
+  });*/
+
+  function populateFilters() {
+    const nameSet = new Set();
+    const phoneSet = new Set();
+
+    allMessages.forEach(m => {
+      if (m.name) nameSet.add(m.name);
+      if (m.phone) phoneSet.add(m.phone);
+    });
+
+    const nameSelect = document.getElementById('filterName');
+    const phoneSelect = document.getElementById('filterPhone');
+    nameSelect.innerHTML = '<option value="">-- Összes név --</option>';
+    phoneSelect.innerHTML = '<option value="">-- Összes szám --</option>';
+
+    [...nameSet].sort().forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      nameSelect.appendChild(opt);
+    });
+
+    [...phoneSet].sort().forEach(num => {
+      const opt = document.createElement('option');
+      opt.value = num;
+      opt.textContent = num;
+      phoneSelect.appendChild(opt);
+    });
+  }
+
+  function setupSync() {
+    const nameSelect = document.getElementById('filterName');
+    const phoneSelect = document.getElementById('filterPhone');
+    const themeSelect = document.getElementById('filterTheme');
+
+    nameSelect.addEventListener('change', () => {
+      const name = nameSelect.value;
+      const phone = nameToPhone[name] || '';
+      phoneSelect.value = phone;
+    });
+
+    phoneSelect.addEventListener('change', () => {
+      const phone = phoneSelect.value;
+      const name = phoneToName[phone] || '';
+      nameSelect.value = name;
+    });
+
+    themeSelect.addEventListener('change', async () => {
+      const selectedTheme = themeSelect.value;
+      const qSelect = document.getElementById('filterQuestionText');
+      const qLabel  = document.querySelector('label[for="filterQuestionText"]');
+      const stats   = document.getElementById('answerStats');
+
+      if (!selectedTheme) {
+        // mindent elrejtünk + ürítünk
+        qSelect.innerHTML = '<option value="">-- Összes kérdés --</option>';
+        qSelect.style.display = 'none';
+        qLabel.style.display  = 'none';
+        stats.style.display   = 'none';
+        stats.innerHTML       = '';
+        return;
+      }
+
+      // 🔑 betöltjük a kérdéseket + felhúzzuk a qSelect.onchange-t + statot is frissít
+      await loadQuestionsForTheme(selectedTheme);
+
+      // mezők mutatása
+      qSelect.style.display = 'block';
+      qLabel.style.display  = 'block';
+    });
+  }
+
+  /*document.getElementById('filterQuestionnaireFilter').addEventListener('change', (e) => {
+    const show = e.target.value === 'questionnaire';
+
+    document.getElementById('themeGroup').style.display = show ? 'block' : 'none';
+    document.getElementById('filterQuestionText').style.display = show ? 'block' : 'none';
+    document.querySelector('label[for="filterQuestionText"]').style.display = show ? 'block' : 'none';
+    document.getElementById('filterAnswerText').style.display = show ? 'block' : 'none';
+    document.querySelector('label[for="filterAnswerText"]').style.display = show ? 'block' : 'none';
+
+    if (!show) {
+      document.getElementById('filterTheme').value = '';
+      document.getElementById('filterQuestionText').value = '';
+      document.getElementById('filterAnswerText').value = '';
+    }
+  });*/
+
+  function applyFilter(manual = true, clearAnswer = false) {
+    const name       = document.getElementById('filterName').value;
+    const phone      = document.getElementById('filterPhone').value;
+    const type       = document.getElementById('filterType').value;
+    const startDate  = document.getElementById('startDate').value;
+    const endDate    = document.getElementById('endDate').value;
+    const direction  = document.getElementById('filterDirection').value;
+    const theme      = document.getElementById('filterTheme').value;
+    const questionId = document.getElementById('filterQuestionText')?.value || '';
+
+    // mentjük (visszatöltéshez)
+    filterParams = { name, phone, type, startDate, endDate, direction, theme, questionText: questionId };
+
+    appliedParams = { name, phone, type, startDate, endDate, direction, theme, questionText: questionId };
+
+    // közös szűrés – név/telefon/dátum (irányt itt NEM alkalmazzuk,
+    // mert kérdőív módnál kell a kiküldött kérdés is a párosításhoz)
+    let base = allMessages.slice();
+    if (clearAnswer) selectedAnswerOption = null;
+    if (name)      base = base.filter(m => m.name  === name);
+    if (phone)     base = base.filter(m => m.phone === phone);
+    if (startDate) base = base.filter(m => m.timestamp >= new Date(startDate));
+    if (endDate)   base = base.filter(m => m.timestamp <= new Date(endDate + 'T23:59:59'));
+
+    // ha nem kérdőív típus
+    if (type && type !== 'questionnaire') {
+      let out = base.filter(m => m.type === type);
+      if (direction) out = out.filter(m => m.direction === direction);
+      showMessages(out, manual);
+      return;
+    }
+
+    // kérdőív mód
+    if (type === 'questionnaire') {
+      if (!theme) selectedAnswerOption = null;
+      maybeRenderAnswerStats();
+
+      const flow = window.__flowCache?.[theme] || {};
+      const otherKey = '__OTHER__';
+
+      // ------------- NINCS konkrét kérdés kiválasztva -------------
+      if (!questionId) {
+        // építsünk kérdés–válasz párokat minden kiküldött kérdésre
+        const rows = [];
+        for (let i = 0; i < base.length; i++) {
+          const m = base[i];
+          if (isQuestionOfFlow(m, theme)) {
+            const reply = findFirstReplyAfter(i, base); // mostantól csak button
+            rows.push(m);
+            if (reply) rows.push(reply);
+          }
+        }
+
+        // stat gombok: ha valamelyik opció ki van választva, csak a VÁLASZOK jöjjenek
+        if (selectedAnswerOption !== null) {
+          const phones = new Set();
+          for (let i = 0; i < base.length; i++) {
+            const q = base[i];
+            if (q.direction === 'sent' && (q.type === 'template' || q.type === 'text') && (!theme || q.theme === theme)) {
+              const rep = findFirstReplyAfter(i, base);
+              if (!rep) continue;
+              const ans = (rep.content || '').toString().trim();
+              const qid = extractQidFromMsg(q);
+              const isKnown = flow[qid]?.next ? Object.keys(flow[qid].next).includes(ans) : false;
+
+              if (selectedAnswerOption === '') {
+                phones.add(rep.phone);                         // Összes
+              } else if (selectedAnswerOption === otherKey) {
+                if (!isKnown) phones.add(rep.phone);           // Egyéb
+              } else if (ans === selectedAnswerOption) {
+                phones.add(rep.phone);                         // Konkrét opció
+              }
+            }
+          }
+          const out = rows.filter(m => m.direction === 'received' && phones.has(m.phone));
+          showMessages(out, manual);
+          return;
+        }
+
+        // nincs opció kiválasztva → kérdés + első válasz együtt
+        showMessages(rows, manual);
+        return;
+      }
+
+      // ------------- VAN konkrét kérdés kiválasztva -------------
+      // építs párokat KIZÁRÓLAG a kiválasztott kérdésre
+      const pairs = [];
+      for (let i = 0; i < base.length; i++) {
+        const m = base[i];
+        if (isQuestionMessage(m, theme, questionId)) {
+          const reply = findFirstReplyAfter(i, base);
+          pairs.push({ q: m, a: reply });
+        }
+      }
+
+      // ha stat gomb aktív → CSAK a válaszok (és csak a megfelelő kosár)
+      if (selectedAnswerOption !== null) {
+        const phones = new Set();
+        for (const p of pairs) {
+          if (!p.a) continue;
+          const ans = (p.a.content || '').toString().trim();
+          const isKnown = flow[questionId]?.next ? Object.keys(flow[questionId].next).includes(ans) : false;
+
+          if (selectedAnswerOption === '') {
+            phones.add(p.a.phone);
+          } else if (selectedAnswerOption === otherKey) {
+            if (!isKnown) phones.add(p.a.phone);
+          } else if (ans === selectedAnswerOption) {
+            phones.add(p.a.phone);
+          }
+        }
+        const out = pairs.filter(p => p.a && phones.has(p.a.phone)).map(p => p.a);
+        showMessages(out, manual);
+        return;
+      }
+
+      // nincs stat gomb → kérdés + első válasz együtt (irány SZŰRÉS NÉLKÜL)
+      const out = [];
+      for (const p of pairs) {
+        out.push(p.q);
+        if (p.a) out.push(p.a);
+      }
+      showMessages(out, manual);
+      return;
+    }
+
+    // ha semmi extra
+    if (direction) base = base.filter(m => m.direction === direction);
+    showMessages(base, manual);
+
+    // autorefresh
+    if (manual && (name || phone || type || startDate || endDate || direction || theme || questionId)) {
+      isFiltering = true;
+      if (filterInterval) clearInterval(filterInterval);
+      filterInterval = setInterval(async () => {
+        await fetchData();
+        applyFilter(false);
+      }, 10000);
+    }
+  }
+
+  function maybeRenderAnswerStats() {
+    const type = document.getElementById('filterType').value;
+    const theme = document.getElementById('filterTheme').value;
+    const qid   = document.getElementById('filterQuestionText').value;
+    const box   = document.getElementById('answerStats');
+
+    if (type !== 'questionnaire' || !theme || !qid) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    const stats = collectAnswerStats(theme, qid);
+    renderAnswerStats(stats);
+  }
+
+  function collectAnswerStats(theme, qid) {
+    const flow = window.__flowCache?.[theme] || {};
+    const node = flow[qid] || {};
+    const next = node.next || {};
+
+    // ismert opciók + normalizált név → eredeti címke visszakeresése
+    const options = Object.keys(next);
+    const normToLabel = new Map(options.map(lbl => [normAnswer(lbl), lbl]));
+
+    const respondents = {};              // label → Set(phone)
+    const otherKey = '__OTHER__';
+    const base = allMessages;            // időrendben
+
+    function bump(map, key, who) {
+      if (!map[key]) map[key] = new Set();
+      map[key].add(who);
+    }
+
+    for (let i = 0; i < base.length; i++) {
+      const msg = base[i];
+      if (isQuestionMessage(msg, theme, qid)) {
+        const reply = findFirstReplyAfter(i, base);
+        if (!reply) continue;
+
+        const raw = (reply.content || '').toString();
+        const norm = normAnswer(raw);
+
+        // ha találtunk normalizált egyezést, az eredeti címkére számolunk
+        const bucket = normToLabel.get(norm) || otherKey;
+        bump(respondents, bucket, reply.phone);
+      }
+    }
+
+    // számlálók
+    const counts = {};
+    options.forEach(lbl => counts[lbl] = respondents[lbl]?.size || 0);
+    if (respondents[otherKey]?.size) counts[otherKey] = respondents[otherKey].size;
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    return { counts, total, options, otherKey, respondents };
+  }
+
+  function renderAnswerStats({ counts, total, options, otherKey, respondents }) {
+    const box = document.getElementById('answerStats');
+    box.style.display = 'block';
+
+    const parts = [];
+    parts.push(`<div><strong>Válaszok összesítése</strong> (összesen: ${total})</div>`);
+    parts.push(`<div style="display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.5rem;">`);
+
+    // Összes
+    parts.push(`
+      <button type="button" data-answer="" class="ansbtn${selectedAnswerOption === '' ? ' active' : ''}">
+        Összes (${total})
+      </button>
+    `);
+
+    // ismert opciók
+    options.forEach(opt => {
+      const n = counts[opt] || 0;
+      const active = selectedAnswerOption === opt ? ' active' : '';
+      parts.push(`
+        <button type="button" data-answer="${encodeURIComponent(opt)}" class="ansbtn${active}">
+          ${escapeHtml(opt)} (${n})
+        </button>
+      `);
+    });
+
+    // Egyéb
+    if (counts[otherKey] > 0) {
+      const active = selectedAnswerOption === otherKey ? ' active' : '';
+      parts.push(`
+        <button type="button" data-answer="${otherKey}" class="ansbtn${active}">
+          Egyéb (${counts[otherKey]})
+        </button>
+      `);
+    }
+
+    parts.push(`</div>`);
+    parts.push(`<div id="answerAudience" style="margin-top:.5rem; font-size:.95rem; color:#666;"></div>`);
+    box.innerHTML = parts.join('\n');
+
+    // események
+    box.querySelectorAll('.ansbtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        let v = btn.getAttribute('data-answer'); // '', '__OTHER__', (kódolt opció)
+        // az „Összes” ('') és az „Egyéb” ('__OTHER__') kivétel
+        if (v && v !== otherKey) {
+          try { v = decodeURIComponent(v); } catch {}
+        }
+        selectedAnswerOption = v;     // most már: 'Régóta', 'Nem régóta', '' vagy '__OTHER__'
+        box.querySelectorAll('.ansbtn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderAudienceList(selectedAnswerOption, respondents, otherKey);
+        applyFilter(true);
+      });
+    });
+  }
+
+  function renderAudienceList(selected, respondents, otherKey) {
+    const host = document.getElementById('answerAudience');
+    if (!host) return;
+    if (selected === null) { host.textContent = ''; return; }
+
+    let key = selected || '__ALL__';
+    if (key === '__ALL__') {
+      const union = new Set();
+      Object.values(respondents).forEach(set => set.forEach(p => union.add(p)));
+      host.textContent = `Kiválasztva: Összes (${union.size} fő)`;
+
+      // ⬇ ÚJ: listázás
+      const phones = Array.from(union);
+      const lines = phones.map(p => {
+        const name = phoneToName[p] || '👤 Ismeretlen';
+        return `${name} – ${p}`;
+      });
+      host.innerHTML = `
+        <div style="margin-top:.25rem;">Kiválasztva: Összes (${union.size} fő)</div>
+        <ul style="margin:.25rem 0 0 1rem;">
+          ${lines.map(li => `<li>${escapeHtml(li)}</li>`).join('')}
+        </ul>
+      `;
+
+    } else if (key === otherKey) {
+      const count = respondents[otherKey]?.size || 0;
+      host.textContent = `Kiválasztva: Egyéb (${count} fő)`;
+
+      const phones = Array.from(respondents[otherKey] || []);
+      const lines = phones.map(p => {
+        const name = phoneToName[p] || '👤 Ismeretlen';
+        return `${name} – ${p}`;
+      });
+      host.innerHTML = `
+        <div style="margin-top:.25rem;">Kiválasztva: Egyéb (${count} fő)</div>
+        <ul style="margin:.25rem 0 0 1rem;">
+          ${lines.map(li => `<li>${escapeHtml(li)}</li>`).join('')}
+        </ul>
+      `;
+
+    } else {
+      const count = respondents[key]?.size || 0;
+      host.textContent = `Kiválasztva: "${key}" (${count} fő)`;
+
+      const phones = Array.from(respondents[key] || []);
+      const lines = phones.map(p => {
+        const name = phoneToName[p] || '👤 Ismeretlen';
+        return `${name} – ${p}`;
+      });
+      host.innerHTML = `
+        <div style="margin-top:.25rem;">Kiválasztva: "${key}" (${count} fő)</div>
+        <ul style="margin:.25rem 0 0 1rem;">
+          ${lines.map(li => `<li>${escapeHtml(li)}</li>`).join('')}
+        </ul>
+      `;
+    }
+  }
+
+  // mini helper XSS ellen
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function normAnswer(s) {
+    if (!s) return '';
+    return s
+            .toString()
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')            // ékezetek leválasztása
+            .replace(/[\u0300-\u036f]/g, '') // ékezet jelek törlése
+            .replace(/[.,;:!?]+$/g, ''); // záró írásjelek le
+  }
+
+  function showMessages(messages, scrollToBottom = false) {
+    const chatEl = document.getElementById('chat');
+    chatEl.innerHTML = '';
+    chatEl.style.display = 'flex';
+
+    if (messages.length === 0) {
+      setResultsCount(0);
+      renderActiveFilters();
+      setupStickyDay();
+      chatEl.innerHTML = '<p style="text-align:center;">📭 Nincs találat a megadott feltételekre.</p>';
+      return;
+    }
+
+    let lastDate = null;
+
+    messages.forEach(msg => {
+      // ── dátum elválasztó, ha új nap jön
+      const currentDate = msg.timestamp.toDateString();
+      if (currentDate !== lastDate) {
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'date-divider';
+
+        const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+        dateDiv.textContent =
+                currentDate === today     ? '📅 Ma' :
+                        currentDate === yesterday ? '📅 Tegnap'
+                                : `📅 ${msg.timestamp.toLocaleDateString()}`;
+
+        chatEl.appendChild(dateDiv);
+        lastDate = currentDate;
+      }
+
+      // ── buborék
+      const div = document.createElement('div');
+      div.className = `message ${msg.direction}`;
+      let body = '';
+
+      if (msg.type === 'image') {
+        const src = msg.direction === 'sent' && msg.media ? msg.media : msg.content;
+        body = src
+                ? `<img src="${src}" alt="Kép" style="max-width:100%; border-radius:6px;">`
+                : '<em>(kép nem elérhető)</em>';
+
+      } else if (msg.type === 'document') {
+        const link = msg.direction === 'sent' && msg.media ? msg.media : msg.content;
+        body = link
+                ? `<a href="${link}" target="_blank">📎 Dokumentum megnyitása</a>`
+                : '<em>(dokumentum nem elérhető)</em>';
+
+      } else if (msg.type === 'template') {
+        try {
+          let tplName = '';
+          let paramValues = [];
+          if (msg.content && msg.content.startsWith('{')) {
+            const parsed = JSON.parse(msg.content);
+            tplName = (parsed.template || 'ismeretlen_sablon').trim().toLowerCase();
+            paramValues = parsed.parameters || [];
+          } else {
+            tplName = (msg.content || '').trim().toLowerCase();
+          }
+
+          const templateData = templateMap[tplName];
+          if (templateData && templateData.text) {
+            let text = templateData.text;
+
+            if (/\{\{\d+\}\}/.test(text)) {
+              paramValues.forEach((val, i) => {
+                const rx = new RegExp(`\\{\\{${i + 1}\\}\\}`, 'g');
+                text = text.replace(rx, val);
+              });
+            } else if (/\{\{\}\}/.test(text)) {
+              paramValues.forEach(val => { text = text.replace(/\{\{\}\}/, val); });
+            }
+
+            body = `<div style="white-space:pre-wrap;">${text}</div>`;
+          } else {
+            body = `<div><em>Sablon nem található vagy üres.</em></div>`;
+          }
+        } catch {
+          body = `<div><strong>Hibás sablonformátum:</strong><br>${msg.content || '<em>üres</em>'}</div>`;
+        }
+
+      } else {
+        const raw = (msg.content || '').trim();
+        body = questionMap[raw] || raw || '<em>(üres üzenet)</em>';
+      }
+
+      // tartalom
+      const contentWrapper = document.createElement('div');
+      // ha HTML-es a body (kép/link/sablon), engedjük be
+      if (body.includes('<')) contentWrapper.innerHTML = body;
+      else contentWrapper.textContent = body;
+      div.appendChild(contentWrapper);
+
+      // ── meta: név + szám + típus + CSAK idő
+      const timeLabel = msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = [
+        `${msg.name} – ${msg.phone}<span class="type-label">${msg.type}</span>`,
+        timeLabel
+      ].join('<br>');
+      div.appendChild(meta);
+
+      chatEl.appendChild(div);
+    });
+
+    setResultsCount(messages.length);
+    renderActiveFilters();
+    setupStickyDay();
+
+  }
+  // Scroll to top button megjelenítése / elrejtése
+  // Mutatás/elrejtés gördítésnél (⬆ és ⬇ gomb)
+  window.addEventListener('scroll', () => {
+    const topBtn = document.getElementById('scrollTopBtn');
+    const bottomBtn = document.getElementById('scrollBottomBtn');
+
+    // ⬆ fel-gomb: ha 300 px-nél lejjebb vagyunk, látszódjon
+    topBtn.style.display = window.scrollY > 300 ? 'block' : 'none';
+
+    // ⬇ le-gomb: ha nem vagyunk az oldal alján, látszódjon
+    const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 300;
+    bottomBtn.style.display = nearBottom ? 'none' : 'block';
+  });
+
+  // Visszagörgetés a tetejére
+  document.getElementById('scrollTopBtn').addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  document.getElementById('scrollBottomBtn').addEventListener('click', () => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
+
+  // Üzenetből kérdés-azonosító (qid) kibányászása
+  function extractQidFromMsg(msg){
+    if (!msg) return '';
+    if (typeof msg.content === 'string' && msg.content.trim().startsWith('{')) {
+      try {
+        const p = JSON.parse(msg.content);
+        return (p.template || '').trim();
+      } catch {}
+    }
+    return (msg.content || '').toString().trim();
+  }
+
+  // Akkor igaz, ha a küldött üzenet tényleg egy kérdőív-kérdés
+  // theme == '' esetén bármely kérdőív bármely kérdése elfogadott
+  function isQuestionOfFlow(msg, theme){
+    if (msg.direction !== 'sent') return false;
+    if (!(msg.type === 'template' || msg.type === 'text')) return false;
+
+    const qid = extractQidFromMsg(msg);
+    if (!qid) return false;
+
+    if (theme) {
+      const flow = window.__flowCache?.[theme] || {};
+      if (msg.theme && msg.theme !== theme) return false;
+      return !!flow[qid];
+    } else {
+      // nincs téma: globálisan nézzük a kérdés-azonosítót
+      return !!questionMap[qid]; // questionMap kulcsai a qid-ek
+    }
+  }
+
+  // Kérdés-üzenet azonosítása (kezeli a sima qid-et és a JSON-os template-et is)
+  function isQuestionMessage(msg, theme, qid) {
+    if (msg.direction !== 'sent') return false;
+    if (!(msg.type === 'template' || msg.type === 'text')) return false;
+    // csak akkor zárjuk ki, ha VAN theme a sorban és eltér
+    if (theme && msg.theme && msg.theme !== theme) return false;
+
+    if (msg.content === qid) return true;
+    if (typeof msg.content === 'string' && msg.content.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(msg.content);
+        const tpl = (parsed.template || '').trim();
+        if (tpl === qid) return true;
+      } catch {}
+    }
+    return false;
+  }
+
+  // Csak a BUTTON típusú első bejövő válasz kell
+  function findFirstReplyAfter(idx, base) {
+    const q = base[idx];
+    for (let j = idx + 1; j < base.length; j++) {
+      const m = base[j];
+      if (m.phone === q.phone && m.direction === 'received') {
+        if (m.type === 'button') return m; // ✅ csak gombos válasz
+        // ha nem gomb, megyünk tovább – de ha közben új kérdés ment ki, álljunk meg
+      }
+      if (m.phone === q.phone && m.direction === 'sent' && (m.type === 'template' || m.type === 'text')) {
+        break;
+      }
+    }
+    return null;
+  }
+
+  function updateVisibilityForType(type) {
+    const hideDir    = (type === 'questionnaire' || type === 'template');
+    const dirGroup   = document.getElementById('directionGroup');
+    const dirSel     = document.getElementById('filterDirection');
+    const statsBox   = document.getElementById('answerStats');
+
+    const themeGroup = document.getElementById('themeGroup');
+    const themeSel   = document.getElementById('filterTheme');
+    const qSel       = document.getElementById('filterQuestionText');
+    const qLbl       = document.querySelector('label[for="filterQuestionText"]');
+
+    // Irány mező mutatása/elrejtése
+    if (dirGroup) dirGroup.style.display = hideDir ? 'none' : 'block';
+    if (hideDir && dirSel && dirSel.value) dirSel.value = '';
+
+    // 🔑 Kérdőíves mezők teljes blokkjának kapcsolása
+    if (themeGroup) themeGroup.style.display = (type === 'questionnaire') ? 'block' : 'none';
+
+    if (type !== 'questionnaire') {
+      // kérdőíves állapotok és mezők ürítése + elrejtése
+      selectedAnswerOption = null;
+      if (statsBox){ statsBox.style.display = 'none'; statsBox.innerHTML = ''; }
+
+      if (themeSel) themeSel.value = '';
+      if (qSel) {
+        qSel.value = '';
+        qSel.style.display = 'none';
+        qSel.innerHTML = '<option value="">-- Összes kérdés --</option>';
+      }
+      if (qLbl) qLbl.style.display = 'none';
+    }
+  }
+
+  function clearAllFilters(){
+    document.getElementById('filterName').value = '';
+    document.getElementById('filterPhone').value = '';
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterDirection').value = '';
+    document.getElementById('filterTheme').value = '';
+    const qSel = document.getElementById('filterQuestionText');
+    if (qSel){ qSel.innerHTML = '<option value="">-- Összes kérdés --</option>'; qSel.style.display='none'; }
+    const qLbl = document.querySelector('label[for="filterQuestionText"]');
+    if (qLbl) qLbl.style.display='none';
+
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value   = '';
+
+    selectedAnswerOption = null;
+    const stats = document.getElementById('answerStats');
+    if (stats){ stats.style.display='none'; stats.innerHTML=''; }
+
+    filterParams = {}; // ürítés a visszatöltéshez
+    updateVisibilityForType('');
+    applyFilter(true, true);
+    updateVisibilityForType('');
+  }
+
+  // --- Egyetlen szűrő törlése a chippel ---
+  function clearSingleFilter(key){
+    const map = {
+      name: () => { document.getElementById('filterName').value=''; document.getElementById('filterPhone').value=''; },
+      phone: () => { document.getElementById('filterName').value=''; document.getElementById('filterPhone').value=''; },
+      type: () => { document.getElementById('filterType').value=''; updateVisibilityForType(''); },
+      direction: () => { document.getElementById('filterDirection').value=''; },
+      theme: () => {
+        document.getElementById('filterTheme').value='';
+        const qSel=document.getElementById('filterQuestionText');
+        if(qSel){ qSel.value=''; qSel.style.display='none'; }
+        const qLbl=document.querySelector('label[for="filterQuestionText"]');
+        if(qLbl) qLbl.style.display='none';
+      },
+      questionText: () => { const qSel=document.getElementById('filterQuestionText'); if(qSel) qSel.value=''; },
+      startDate: () => { document.getElementById('startDate').value=''; },
+      endDate:   () => { document.getElementById('endDate').value=''; },
+      date:      () => { // <-- új: mindkét dátumot törli
+        document.getElementById('startDate').value='';
+        document.getElementById('endDate').value='';
+      }
+    };
+    if(map[key]) map[key]();
+    applyFilter(true, true);
+  }
+
+  // --- Aktív szűrők chippek renderelése ---
+  function renderActiveFilters(){
+    const host = document.getElementById('activeFilters');
+    const vals = appliedParams || {};
+    const currentType = vals.type || '';
+
+    const labelOfDirection = d => d==='sent' ? 'Elküldött' : d==='received' ? 'Kapott' : d || '';
+    const labelOfType = t => ({ text:'szöveg', image:'kép', document:'dokumentum', template:'sablon', questionnaire:'kérdőív' }[t] || t || '');
+    const labelOfQuestion = id => (questionMap[id] || id || '');
+
+    let dateLabel = '';
+    if (vals.startDate && vals.endDate) dateLabel = `${vals.startDate} - ${vals.endDate}`;
+    else if (vals.startDate)            dateLabel = vals.startDate;
+    else if (vals.endDate)              dateLabel = vals.endDate;
+
+    const chips = [];
+    if (vals.name)      chips.push(['name', vals.name]);
+    if (vals.phone)     chips.push(['phone', vals.phone]);
+    if (vals.type)      chips.push(['type', labelOfType(vals.type)]);
+    if (vals.direction) chips.push(['direction', labelOfDirection(vals.direction)]);
+    if (currentType === 'questionnaire') {
+      if (vals.theme)        chips.push(['theme', vals.theme]);
+      if (vals.questionText) chips.push(['questionText', labelOfQuestion(vals.questionText)]);
+    }
+    if (dateLabel) chips.push(['date', dateLabel]);
+
+    if (!chips.length){ host.style.display='none'; host.innerHTML=''; return; }
+
+    host.style.display='flex';
+    host.innerHTML = chips.map(([key,value]) =>
+            `<span class="chip" data-key="${key}">${escapeHtml(value)} <button title="Szűrő törlése" aria-label="Szűrő törlése">&times;</button></span>`
+    ).join('');
+
+    host.querySelectorAll('.chip button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const key = btn.closest('.chip').getAttribute('data-key');
+        clearSingleFilter(key);          // ez meghívja az applyFilter-t, így frissül az appliedParams is
+      });
+    });
+  }
+
+  // --- Találatok száma ---
+  function setResultsCount(n){
+    const bar = document.getElementById('resultsBar');
+    bar.style.display = 'block';
+    bar.textContent = `Találatok: ${n}`;
+  }
+
+  // --- Sticky aktuális nap sáv ---
+  function setupStickyDay(){
+    const sticky = document.getElementById('stickyDay');
+    const headers = Array.from(document.querySelectorAll('.date-divider'));
+    if (!headers.length){ sticky.style.display='none'; sticky.textContent=''; return; }
+
+    sticky.style.display='block';
+    const update = () => {
+      let current = '';
+      for (const h of headers){
+        const r = h.getBoundingClientRect();
+        if (r.top <= 8) current = h.textContent;  // legutóbbi, ami átért a tetején
+      }
+      if (!current) current = headers[0].textContent;
+      sticky.textContent = current;
+    };
+    update();
+    window.removeEventListener('scroll', update);     // ne duplikáljuk
+    window.addEventListener('scroll', update, {passive:true});
+  }
+
+</script>
+</body>
+</html>

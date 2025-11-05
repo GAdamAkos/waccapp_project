@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="hu">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Adatkezelési tájékoztató – belső felhasználói fiókok</title>
+    <style>
+        /* === Alap stílusok, összhangban a login oldallal === */
+        :root { --bg:#ffffff; --text:#111; --accent:#26a69a; --input:#f7f7f7; --border:#ccc; }
+        @media (prefers-color-scheme: dark){
+            :root { --bg:#1e1e1e; --text:#eee; --accent:#26a69a; --input:#2c2c2c; --border:#444; }
+        }
+        [data-theme="dark"]  { --bg:#1e1e1e; --text:#eee; --input:#2c2c2c; --border:#444; }
+        [data-theme="light"] { --bg:#fff;    --text:#111; --input:#f7f7f7; --border:#ccc; }
+
+        *{box-sizing:border-box}
+        body{
+            margin:0; background:var(--bg); color:var(--text);
+            font-family:'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, Arial, sans-serif;
+            line-height:1.6;
+        }
+
+        .wrap{ max-width:900px; margin:2rem auto; padding:1rem; }
+        .card{
+            background:var(--bg); border:1px solid var(--border);
+            border-radius:1rem; padding:1.25rem 1.5rem;
+            box-shadow:0 10px 25px rgba(0,0,0,.1);
+        }
+
+        h1{ margin:.25rem 0 1rem; font-size:1.6rem; }
+        h2{ margin:1.25rem 0 .5rem; font-size:1.15rem; }
+        a{ color:var(--accent); }
+
+        .muted{ color:#777; }
+        .topbar{
+            display:flex; justify-content:flex-end; align-items:center; margin-bottom:.5rem;
+        }
+        .topbar button{
+            background:none; border:1px solid var(--border); color:var(--text);
+            border-radius:.5rem; padding:.35rem .6rem; cursor:pointer;
+        }
+
+        nav.toc{
+            border:1px solid var(--border); border-radius:.75rem;
+            padding:.75rem; margin:.25rem 0 1rem; background:var(--input);
+        }
+        nav.toc strong{ display:block; margin-bottom:.25rem; }
+        nav.toc a{ display:block; padding:.15rem 0; text-decoration:none; }
+
+        ul{ padding-left:1.25rem; }
+        code{
+            background:color-mix(in oklab, var(--input) 90%, transparent);
+            padding:.1rem .35rem; border-radius:.25rem;
+        }
+
+        /* Nyomtatás */
+        @media print{
+            .card{ box-shadow:none; border:none; }
+            .topbar{ display:none !important; }
+            nav.toc{ border:none; background:transparent; }
+            a{ color:#000; text-decoration:underline; }
+            a[href^="http"]::after{ content:" (" attr(href) ")"; font-size:.9em; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="topbar">
+        <button id="btnTheme" type="button" aria-label="Téma váltása">🌓 Téma váltása</button>
+    </div>
+
+    <article class="card">
+        <h1>Adatkezelési tájékoztató – belső felhasználói fiókok</h1>
+        <p class="muted">Ez a rendszer belső használatra készült. Az alábbiak a bejelentkezéshez és jogosultság-kezeléshez kapcsolódó adatkezelést ismertetik.</p>
+
+        <!-- Tartalomjegyzék -->
+        <nav class="toc" aria-label="Tartalomjegyzék" role="doc-toc">
+            <strong>Tartalom</strong>
+            <a href="#adatkezelo">Adatkezelő</a>
+            <a href="#adatkor">Kezelt adatok köre</a>
+            <a href="#cel-jogalap">Adatkezelés célja és jogalapja</a>
+            <a href="#forras">Forrás</a>
+            <a href="#cimzettek">Címzettek és adatfeldolgozók</a>
+            <a href="#harmadik">Harmadik országba történő adattovábbítás</a>
+            <a href="#megorzes">Megőrzési idők</a>
+            <a href="#sutik">Sütik</a>
+            <a href="#biztonsag">Adatbiztonsági intézkedések</a>
+            <a href="#jogok">Érintetti jogok</a>
+            <a href="#kapcsolat">Kapcsolat</a>
+        </nav>
+
+        <h2 id="adatkezelo">Adatkezelő</h2>
+        <p><strong>&lt;Cég neve&gt;</strong> – székhely: &lt;cím&gt; – cégjegyzékszám: &lt;…&gt; – email: <a href="mailto:privacy@ceg.hu">privacy@ceg.hu</a></p>
+
+        <h2 id="adatkor">Kezelt adatok köre</h2>
+        <ul>
+            <li>Felhasználói email-cím</li>
+            <li>Jelszó <strong>visszafejthetetlen, sózott hash</strong> formában (bcrypt)</li>
+            <li>Szerepkör (owner/admin/operator/analyst/viewer)</li>
+            <li>Munkamenet azonosító (HTTP-only süti)</li>
+            <li>Audit napló: IP cím, böngésző-azonosító (user-agent), művelet, időbélyeg</li>
+            <li><strong>Egyszer használható email-kód (OTP)</strong>: kód <em>hash</em>-e, lejárat, hibás próbálkozások száma</li>
+        </ul>
+
+        <h2 id="cel-jogalap">Adatkezelés célja és jogalapja</h2>
+        <ul>
+            <li><strong>Cél:</strong> felhasználói azonosítás, jogosultság-kezelés, hozzáférések naplózása és visszaélés megelőzése; regisztráció megerősítése email-kóddal.</li>
+            <li><strong>Jogalap:</strong> GDPR 6. cikk (1) bekezdés f) – az Adatkezelő jogos érdeke az információbiztonság biztosítására. Munkaviszony vagy megbízási jogviszony esetén kiegészülhet a 6. cikk (1) b) ponttal (szerződés teljesítése).</li>
+        </ul>
+
+        <h2 id="forras">Forrás</h2>
+        <p>A felhasználói adatok közvetlenül az érintettektől származnak (regisztráció/bejelentkezés során).</p>
+
+        <h2 id="cimzettek">Címzettek és adatfeldolgozók</h2>
+        <ul>
+            <li>Saját rendszergazdák és felhatalmazott munkavállalók.</li>
+            <li><strong>Email-kézbesítő (SMTP) szolgáltató</strong> az OTP-kódok kiküldéséhez: &lt;szolgáltató neve&gt; – &lt;ország&gt;. A szolgáltató adatfeldolgozói minőségben jár el.</li>
+        </ul>
+
+        <h2 id="harmadik">Harmadik országba történő adattovábbítás</h2>
+        <p>Amennyiben az email-szolgáltató vagy egyéb technikai szolgáltató Európai Gazdasági Térségen kívül található, az adattovábbítás megfelelő garanciák (pl. EU Bizottság megfelelőségi határozata, standard szerződéses kikötések) alapján történik.</p>
+
+        <h2 id="megorzes">Megőrzési idők</h2>
+        <ul>
+            <li>Felhasználói fiók adatai: a fiók törléséig.</li>
+            <li>Audit naplók: legfeljebb 12 hónap.</li>
+            <li>OTP rekordok: alapértelmezetten 10 percig érvényesek; sikeres regisztráció után törlésre kerülnek; lejárat vagy túl sok hibás próbálkozás esetén automatikus törlés.</li>
+            <li>Munkamenet süti: a böngésző bezárásáig vagy legfeljebb 8 óráig (session lejárat).</li>
+        </ul>
+
+        <h2 id="sutik">Sütik</h2>
+        <p>Bejelentkezés után egy <strong>HTTP-only</strong> munkamenet-sütit használunk a felhasználói munkamenet azonosítására. Harmadik feles követő sütiket nem használunk.</p>
+
+        <h2 id="biztonsag">Adatbiztonsági intézkedések</h2>
+        <ul>
+            <li>Jelszókezelés visszafejthetetlen bcrypt hash-sel és egyedi sóval.</li>
+            <li>HTTPS használata éles környezetben; a session sütik csak biztonságos csatornán kerülnek továbbításra.</li>
+            <li>Rate-limitek a bejelentkezési és OTP végpontokon, naplózás és jogosultságkezelés.</li>
+            <li>Hozzáférés-szabályozás és rendszeres audit naplózás.</li>
+        </ul>
+
+        <h2 id="jogok">Érintetti jogok</h2>
+        <p>Ön jogosult kérelmezni a személyes adataihoz való hozzáférést, azok helyesbítését vagy törlését, az adatkezelés korlátozását, tiltakozhat a jogos érdeken alapuló adatkezelés ellen, valamint kérheti adatai hordozhatóságát. Panasszal élhet a Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH).</p>
+
+        <h2 id="kapcsolat">Kapcsolat</h2>
+        <p>Adatkezelő: <strong>&lt;Cég neve&gt;</strong><br>
+            Email: <a href="mailto:privacy@ceg.hu">privacy@ceg.hu</a></p>
+
+        <p class="muted" style="margin-top:2rem">Utolsó frissítés: 2025-..-..</p>
+    </article>
+</div>
+
+<script>
+    // Téma-váltás (összhangban a login oldallal)
+    const saved = localStorage.getItem('theme');
+    if (saved) document.body.setAttribute('data-theme', saved);
+    const btn = document.getElementById('btnTheme');
+    btn?.addEventListener('click', () => {
+        const cur = document.body.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    });
+</script>
+</body>
+</html>

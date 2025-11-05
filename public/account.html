@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="hu">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Saját fiók</title>
+    <style>
+        :root{
+            --bg:#ffffff;--text:#111;--accent:#26a69a;--input:#f0f0f0;--border:#ccc;
+            --muted:#666;--danger:#c62828;--shadow:0 10px 25px rgba(0,0,0,.08);
+        }
+        @media (prefers-color-scheme: dark){
+            :root{
+                --bg:#1e1e1e;--text:#eee;--accent:#26a69a;--input:#2c2c2c;--border:#444;
+                --muted:#a4a4a4;--danger:#ef5350;--shadow:0 12px 30px rgba(0,0,0,.35);
+            }
+        }
+        [data-theme="dark"]{--bg:#1e1e1e;--text:#eee;--input:#2c2c2c;--border:#444;--muted:#a4a4a4}
+        [data-theme="light"]{--bg:#ffffff;--text:#111;--input:#f0f0f0;--border:#ccc;--muted:#666}
+
+        *{box-sizing:border-box}
+        body{
+            margin:0;padding:2rem;min-height:100vh;background:var(--bg);color:var(--text);
+            font-family:'Segoe UI',system-ui,-apple-system,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;
+            transition:background .3s,color .3s;
+        }
+        .container{max-width:900px;margin:0 auto}
+        .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+        .badge{display:inline-block;padding:.4rem .6rem;border:1px solid var(--border);border-radius:.75rem;background:var(--input);color:var(--muted);font-size:.9rem}
+        .badge.ok{color:#2e7d32}
+        .actions{display:flex;gap:.5rem}
+        button{padding:.65rem .9rem;border:1px solid var(--border);border-radius:.6rem;background:var(--input);color:var(--text);cursor:pointer}
+        button.primary{background:var(--accent);color:#fff;border:none}
+        button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+        button.danger{background:var(--danger);color:#fff;border:none}
+        label{display:block;margin:.75rem 0 .25rem;font-weight:500}
+        input,select,textarea{width:100%;padding:.7rem .9rem;border:1px solid var(--border);border-radius:.6rem;background:var(--input);color:var(--text)}
+        .card{background:var(--bg);border:1px solid var(--border);border-radius:1rem;box-shadow:var(--shadow);padding:1rem}
+        .row{display:flex;gap:.75rem}.row>*{flex:1}
+        .sep{height:1px;background:var(--border);margin:1rem 0}
+        .muted{color:var(--muted)}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="topbar">
+        <div id="accountBadge" class="badge">Ellenőrzés…</div>
+        <div class="actions">
+            <button id="btnTheme" type="button">🌓 Téma</button>
+            <button id="btnLogout" type="button">Kijelentkezés</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h1 style="margin-top:0">Saját fiók</h1>
+
+        <h3 class="muted">Profil</h3>
+        <div class="row">
+            <div>
+                <label>Email (bejelentkezéshez)</label>
+                <input id="accEmail" readonly />
+            </div>
+            <div>
+                <label>Szerep</label>
+                <input id="accRole" readonly />
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <label>Megjelenített név (opcionális)</label>
+                <input id="accDisplayName" placeholder="pl. Kovács Bence" />
+            </div>
+            <div style="align-self:end;">
+                <button id="btnSaveProfile" class="primary">Profil mentése</button>
+            </div>
+        </div>
+        <div id="accMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+
+        <div class="sep"></div>
+
+        <h3 class="muted">Jelszó módosítás</h3>
+        <div class="row">
+            <div><label>Jelenlegi jelszó</label><input id="pwCur" type="password" placeholder="••••••••"/></div>
+            <div><label>Új jelszó</label><input id="pwNew" type="password" placeholder="Min. 8 karakter, kis- és nagybetű, szám"/></div>
+            <div><label>Új jelszó mégegyszer</label><input id="pwNew2" type="password" placeholder="Egyezzen meg az előzővel"/></div>
+        </div>
+        <div class="row" style="margin-top:.75rem;">
+            <button id="btnChangePw" class="primary">Jelszó frissítése</button>
+        </div>
+        <div id="pwMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+
+        <div class="sep"></div>
+
+        <h3 class="muted">E-mail csere (opcionális)</h3>
+        <div class="row">
+            <div><label>Új e-mail</label><input id="emNew" type="email" placeholder="uj@pelda.hu"/></div>
+            <div><label>Jelszó megerősítés</label><input id="emPw" type="password" placeholder="••••••••"/></div>
+            <div style="align-self:end;"><button id="btnChangeEmail">E-mail módosítása</button></div>
+        </div>
+        <div id="emMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+
+        <div class="sep"></div>
+
+        <h3 class="muted">Fiók információk</h3>
+        <div class="row">
+            <div><label>Létrehozva</label><input id="accCreated" readonly/></div>
+            <div><label>Utoljára belépve</label><input id="accLastLogin" readonly/></div>
+        </div>
+        <div class="row">
+            <div><label>Adatkezelés elfogadva</label><input id="privAcceptedAt" readonly/></div>
+            <div><label>Verzió</label><input id="privVersion" readonly/></div>
+            <div><label>IP</label><input id="privIp" readonly/></div>
+        </div>
+
+        <div class="sep"></div>
+        <h3 class="muted">Veszélyes művelet</h3>
+
+        <div class="row" style="align-items:flex-end;">
+            <div>
+                <p id="selfDeleteNote" class="muted" style="margin:.25rem 0 .5rem 0;">
+                    A fiók törlése végleges.
+                </p>
+                <div id="delMsg" class="muted" style="margin-top:.25rem;min-height:1.2rem;"></div>
+            </div>
+
+            <div style="display:flex;gap:.5rem;justify-content:flex-end;align-items:center;">
+                <button id="btnBack" class="ghost">← Vissza a menübe</button>
+                <button id="btnDeleteSelf" class="danger">Fiókom törlése</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Téma
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) document.body.setAttribute('data-theme', savedTheme);
+        document.getElementById('btnTheme').onclick = () => {
+            const cur = document.body.getAttribute('data-theme');
+            const next = cur === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        };
+
+        // Közös helper
+        const $ = s => document.querySelector(s);
+        async function api(path, opts={}) {
+            const res = await fetch(path, Object.assign({ method:'GET', headers:{'Content-Type':'application/json'} }, opts));
+            const isJson = (res.headers.get('content-type')||'').includes('application/json');
+            const data = isJson ? await res.json() : await res.text();
+            if (!res.ok) throw new Error((data && data.error) || res.statusText);
+            return data;
+        }
+        function setBadge(me){
+            const badge = $('#accountBadge');
+            if (me){
+                badge.textContent = me.email + ' · ' + me.role;
+                badge.classList.add('ok');
+            } else {
+                badge.textContent = 'Nincs bejelentkezve';
+                badge.classList.remove('ok');
+            }
+        }
+
+        // Kijelentkezés
+        $('#btnLogout').onclick = async () => {
+            try { await api('/admin/auth/logout', {method:'POST'}); } catch(e){}
+            location.href = '/login.html';
+        };
+        document.getElementById('btnBack').onclick = () => { location.href = 'menu.html'; };
+
+        // Fiók betöltés
+        async function loadAccount(){
+            try{
+                const data = await api('/admin/account');
+                const m = data.me || {};
+
+                $('#accEmail').value       = m.email || '';
+                $('#accRole').value        = m.role || '';
+                $('#accDisplayName').value = m.display_name || '';
+                $('#accCreated').value     = m.created_at || '';
+                $('#accLastLogin').value   = m.last_login || '';
+                $('#privAcceptedAt').value = m.privacy_accepted_at || '—';
+                $('#privVersion').value    = m.privacy_version || '—';
+                $('#privIp').value         = m.privacy_accepted_ip || '—';
+
+                setBadge(m);
+
+                // Veszélyes művelet megjegyzés
+                const note = $('#selfDeleteNote');
+                note.textContent = (m.role === 'owner')
+                    ? 'Ownerként a törlés csak akkor engedélyezett, ha marad másik owner.'
+                    : 'A fiók törlése végleges.';
+            }catch(e){
+                if (String(e.message||'').includes('Bejelentkezés')) {
+                    location.href = '/login.html';
+                    return;
+                }
+                $('#accMsg').textContent = e.message || 'Hiba a fiók betöltésekor';
+            }
+        }
+
+        // Profil mentése
+        $('#btnSaveProfile').onclick = async () => {
+            const display_name = $('#accDisplayName').value.trim();
+            $('#accMsg').textContent = 'Mentés…';
+            try{
+                const res = await api('/admin/account', { method:'PATCH', body: JSON.stringify({ display_name }) });
+                $('#accMsg').textContent = 'Profil frissítve.';
+                setBadge(res.me);
+                loadAccount();
+            }catch(e){ $('#accMsg').textContent = e.message; }
+        };
+
+        // Jelszó módosítás
+        $('#btnChangePw').onclick = async () => {
+            const current_password = $('#pwCur').value;
+            const new_password     = $('#pwNew').value;
+            const new_password2    = $('#pwNew2').value;
+            if (new_password !== new_password2) { $('#pwMsg').textContent = 'Az új jelszavak nem egyeznek.'; return; }
+            $('#pwMsg').textContent = 'Frissítés…';
+            try{
+                await api('/admin/account/change-password', { method:'POST', body: JSON.stringify({ current_password, new_password }) });
+                $('#pwMsg').textContent = 'Jelszó frissítve.';
+                $('#pwCur').value=''; $('#pwNew').value=''; $('#pwNew2').value='';
+            }catch(e){ $('#pwMsg').textContent = e.message; }
+        };
+
+        // Email csere
+        $('#btnChangeEmail').onclick = async () => {
+            const new_email = $('#emNew').value.trim();
+            const password  = $('#emPw').value;
+            if (!new_email || !password){ $('#emMsg').textContent = 'Add meg az új e-mailt és a jelszót.'; return; }
+            $('#emMsg').textContent = 'Módosítás…';
+            try{
+                const res = await api('/admin/account/change-email', { method:'POST', body: JSON.stringify({ new_email, password }) });
+                $('#emMsg').textContent = 'E-mail frissítve.';
+                setBadge(res.me);
+                $('#accEmail').value = res.me?.email || new_email;
+                $('#emNew').value=''; $('#emPw').value='';
+            }catch(e){ $('#emMsg').textContent = e.message; }
+        };
+
+        // Saját fiók törlése
+        $('#btnDeleteSelf').onclick = async () => {
+            const role = ($('#accRole').value || '').trim();
+            const confirmMsg = (role === 'owner')
+                ? 'Owner vagy. A törlés csak akkor engedélyezett, ha marad másik owner. Folytatod?'
+                : 'Biztosan törlöd a fiókodat? Ez végleges művelet.';
+            if (!confirm(confirmMsg)) return;
+
+            try{
+                const res = await api('/admin/account/delete', { method:'POST' });
+                if (res.ok) { location.href = '/login.html'; return; }
+                $('#delMsg').textContent = 'A törlés lefutott.';
+                location.href = '/login.html';
+            }catch(e){ $('#delMsg').textContent = e.message || 'Hiba a törléskor.'; }
+        };
+
+        // Indulás
+        (async () => {
+            // ha nincs bejelentkezve → /login.html (middleware is védi)
+            try { await api('/admin/me'); } catch { location.href='/login.html'; return; }
+            loadAccount();
+        })();
+    </script>
+</body>
+</html>

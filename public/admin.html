@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="hu">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Admin – Bejelentkezés, Jogosultságok, Hozzájárulások</title>
+    <style>
+        :root{
+            --bg:#ffffff;--text:#111;--accent:#26a69a;--input:#f0f0f0;--border:#ccc;
+            --muted:#666;--danger:#c62828;--warn:#f57f17;--ok:#2e7d32;--shadow:0 10px 25px rgba(0,0,0,.08);
+        }
+        @media (prefers-color-scheme: dark){
+            :root{
+                --bg:#1e1e1e;--text:#eee;--accent:#26a69a;--input:#2c2c2c;--border:#444;
+                --muted:#a4a4a4;--danger:#ef5350;--warn:#fbc02d;--ok:#66bb6a;--shadow:0 12px 30px rgba(0,0,0,.35);
+            }
+        }
+        [data-theme="dark"]{--bg:#1e1e1e;--text:#eee;--input:#2c2c2c;--border:#444;--muted:#a4a4a4;--shadow:0 12px 30px rgba(0,0,0,.35)}
+        [data-theme="light"]{--bg:#ffffff;--text:#111;--input:#f0f0f0;--border:#ccc;--muted:#666;--shadow:0 10px 25px rgba(0,0,0,.08)}
+        *{box-sizing:border-box}
+        body{
+            margin:0;padding:2rem;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;
+            background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;
+            transition:background .3s,color .3s;
+        }
+        .container{width:100%;max-width:1100px}
+        .header-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+        h1{margin:0;font-size:1.6rem;color:var(--text)}
+        .theme-toggle button{background:none;border:1px solid var(--border);color:var(--text);border-radius:.6rem;padding:.5rem .75rem;cursor:pointer}
+        .shell{display:grid;grid-template-columns:260px 1fr;gap:1rem}
+        @media (max-width:900px){.shell{grid-template-columns:1fr}}
+        .card{background:var(--bg);border:1px solid var(--border);border-radius:1rem;box-shadow:var(--shadow);padding:1rem}
+        nav{display:grid;gap:.5rem}
+        nav button{width:100%;padding:.7rem .9rem;border-radius:.6rem;border:1px solid var(--border);background:var(--input);color:var(--text);cursor:pointer}
+        nav button.active{border-color:var(--accent);outline:2px solid color-mix(in oklab, var(--accent) 30%, transparent);background:color-mix(in oklab, var(--input) 80%, var(--accent))}
+        .badge{display:inline-block;padding:.35rem .6rem;border-radius:999px;border:1px solid var(--border);background:var(--input);color:var(--muted);font-size:.85rem}
+        .badge.ok{color:var(--ok);border-color:color-mix(in oklab, var(--ok) 50%, var(--border))}
+        .badge.warn{color:var(--warn)}
+        .tag{display:inline-block;padding:.2rem .6rem;border-radius:999px;border:1px solid var(--border);background:var(--input);font-size:.8rem;color:var(--text)}
+        label{display:block;margin-top:.75rem;margin-bottom:.25rem;font-weight:500;color:var(--text)}
+        input,select,button,textarea{width:100%;padding:.7rem .9rem;border:1px solid var(--border);border-radius:.6rem;background:var(--input);color:var(--text);font-size:1rem}
+        textarea{min-height:110px}
+        button.primary{background:var(--accent);color:#fff;border:none}
+        button.primary:hover{background:#00796b}
+        button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+        button.danger{background:var(--danger);color:#fff;border:none}
+        .row{display:flex;gap:.75rem}.row>*{flex:1}.row+.row{margin-top:.5rem}
+        .muted{color:var(--muted)}.sep{height:1px;background:var(--border);margin:1rem 0}
+        table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);text-align:left;padding:.6rem .4rem}th{font-weight:600;color:var(--text)}
+        .hidden{display:none}.toolbar{display:flex;gap:.5rem;align-items:center;justify-content:space-between}
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    <div class="header-bar">
+        <h1>Admin felület</h1>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+            <div id="accountBadge" class="badge">Nincs bejelentkezve</div>
+            <div class="theme-toggle"><button type="button" id="btnTheme">🌓 Téma váltása</button></div>
+        </div>
+    </div>
+
+    <div class="shell">
+        <!-- BAL: Navigáció -->
+        <aside class="card">
+            <nav>
+                <button id="navSetup">Első owner létrehozása</button>
+                <button id="navUsers" class="active">Felhasználók & szerepek</button>
+                <button id="navConsents">Hozzájárulások</button>
+                <button id="navConfig">WhatsApp / Meta beállítások</button>
+                <button id="navAccount">Saját fiók</button>
+
+                <!-- ÚJ: Vissza a menübe -->
+                <button id="navBack">← Vissza a menübe</button>
+
+                <button id="navLogout" class="danger">Kijelentkezés</button>
+            </nav>
+            <div class="sep"></div>
+            <div class="muted" style="font-size:.9rem;">
+                <p>Tippek:</p>
+                <ul style="margin:.2rem 0 .4rem 1rem;padding:0;">
+                    <li>Az <span class="tag">Első owner</span> csak egyszer szükséges (<code>ADMIN_SETUP_TOKEN</code>).</li>
+                    <li>Bejelentkezés után látható a jogosultság- és hozzájárulás-kezelés.</li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- JOBB: Nézetek -->
+        <main class="card">
+            <!-- LOGIN NÉZET ELTÁVOLÍTVA -->
+
+            <!-- SETUP OWNER -->
+            <section id="viewSetup" class="hidden">
+                <h2 style="margin:.2rem 0;">Első owner létrehozása</h2>
+
+                <div class="row">
+                    <div><label>Setup token (<code>ADMIN_SETUP_TOKEN</code>)</label><input id="setupToken" placeholder="EGYSZERI_OWNER_SETUP_TOKEN"/></div>
+                </div>
+
+                <div class="row">
+                    <div><label>Owner email</label><input id="setupEmail" type="email" placeholder="owner@pelda.hu"/></div>
+                    <div><label>Owner jelszó</label><input id="setupPass" type="password" placeholder="Erős jelszó"/></div>
+                </div>
+
+                <!-- ÚJ: Owner név -->
+                <div class="row">
+                    <div><label>Owner név</label><input id="setupName" placeholder="pl. Kovács Anna"/></div>
+                </div>
+
+                <div class="row" style="margin-top:.75rem;"><button id="btnSetup" class="primary">Owner létrehozása</button></div>
+                <div id="setupMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+            </section>
+
+            <!-- USERS & ROLES -->
+            <section id="viewUsers">
+                <div class="toolbar">
+                    <h2 style="margin:.2rem 0;">Felhasználók & szerepek</h2>
+                    <span id="roleBadge" class="badge">—</span>
+                </div>
+
+                <h3 class="muted">Felhasználók listája</h3>
+                <div class="row" style="margin:.5rem 0 0 0;">
+                    <div><input id="userSearch" placeholder="Keresés név/email/szerep…"></div>
+                    <div style="flex:0 0 auto;align-self:end;">
+                        <button id="btnExportUsers" class="ghost">Export CSV</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Név</th>
+                        <th>Email</th>
+                        <th>Szerep</th>
+                        <th>Utoljára belépve</th>
+                        <th>Művelet</th>
+                    </tr>
+                    </thead>
+                    <tbody id="usersTbody">
+                    <tr><td colspan="6" class="muted">Nincs adat…</td></tr>
+                    </tbody>
+                </table>
+                <div id="usersMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+            </section>
+
+            <!-- CONSENTS -->
+            <section id="viewConsents" class="hidden">
+                <h2 style="margin:.2rem 0;">Hozzájárulások</h2>
+                <div class="row">
+                    <div><label>wa_id</label><input id="qWa" placeholder="36123456789"/></div>
+                    <div>
+                        <label>scope</label>
+                        <select id="qScope">
+                            <option value="">(mind)</option><option>marketing</option><option>utility</option><option>auth</option>
+                        </select>
+                    </div>
+                    <div style="align-self:end;"><button id="btnLoadConsents" class="ghost">Betöltés</button></div>
+                </div>
+
+                <div class="sep"></div>
+
+                <h3 class="muted">Új hozzájárulás</h3>
+                <div class="row">
+                    <div><label>wa_id</label><input id="cWa" placeholder="36123456789"/></div>
+                    <div><label>phone (opcionális)</label><input id="cPhone" placeholder="+36301234567"/></div>
+                    <div>
+                        <label>scope</label>
+                        <select id="cScope"><option>marketing</option><option>utility</option><option>auth</option></select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div><label>source</label><input id="cSource" placeholder="webform / qr / bolt / import"/></div>
+                    <div><label>proof (URL vagy leírás)</label><input id="cProof" placeholder="https://… / jegyzet"/></div>
+                </div>
+                <div class="row" style="margin-top:.75rem;"><button id="btnCreateConsent" class="primary">Hozzájárulás mentése</button></div>
+
+                <div class="sep"></div>
+
+                <h3 class="muted">Találatok</h3>
+                <table>
+                    <thead><tr><th>ID</th><th>wa_id</th><th>scope</th><th>source</th><th>granted_at</th><th>revoked_at</th><th></th></tr></thead>
+                    <tbody id="consentsTbody"><tr><td colspan="7" class="muted">Nincs adat…</td></tr></tbody>
+                </table>
+                <div id="consentsMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+            </section>
+
+            <!-- CONFIG (csak ownernek látszik majd) -->
+            <section id="viewConfig" class="hidden">
+                <h2 style="margin:.2rem 0;">WhatsApp / Meta beállítások</h2>
+                <div class="muted" style="margin-bottom:.5rem;">
+                    Csak az <b>Owner</b> módosíthatja. A mentés a <code>.env</code>-be ír.
+                    <br><i>★</i> = érzékeny mező (értéke elrejtve), <span class="badge warn">⚠️ újraindítás</span> = módosítás után szerver újraindítása ajánlott.
+                </div>
+
+                <div id="envForm"></div>
+
+                <div class="row" style="margin-top:.75rem;">
+                    <div style="flex:0 0 auto;"><button id="btnEnvLoad" class="ghost">Beolvasás</button></div>
+                    <div><button id="btnEnvSave" class="primary">Mentés</button></div>
+                </div>
+                <div id="envMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+            </section>
+
+            <!-- ACCOUNT -->
+            <section id="viewAccount" class="hidden">
+                <h2 style="margin:.2rem 0;">Saját fiók</h2>
+
+                <h3 class="muted">Profil</h3>
+                <div class="row">
+                    <div>
+                        <label>Email (bejelentkezéshez)</label>
+                        <input id="accEmail" readonly />
+                    </div>
+                    <div>
+                        <label>Szerep</label>
+                        <input id="accRole" readonly />
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>Név (kötelező)</label>
+                        <input id="accDisplayName" placeholder="pl. Kovács Anna" />
+                        <div id="nameCooldown" class="muted" style="margin-top:.25rem;"></div>
+                    </div>
+                    <div>
+                        <label>Felhasználónév (opcionális)</label>
+                        <input id="accUsername" placeholder="pl. kovacs_anna" />
+                    </div>
+                    <div style="align-self:end;">
+                        <button id="btnSaveProfile" class="primary">Profil mentése</button>
+                    </div>
+                </div>
+                <div id="accMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+
+                <div class="sep"></div>
+
+                <h3 class="muted">Jelszó módosítás</h3>
+                <div class="row">
+                    <div><label>Jelenlegi jelszó</label><input id="pwCur" type="password" placeholder="••••••••"/></div>
+                    <div><label>Új jelszó</label><input id="pwNew" type="password" placeholder="Min. 8 karakter, kis- és nagybetű, szám"/></div>
+                    <div><label>Új jelszó mégegyszer</label><input id="pwNew2" type="password" placeholder="Egyezzen meg az előzővel"/></div>
+                </div>
+                <div class="row" style="margin-top:.75rem;">
+                    <button id="btnChangePw" class="primary">Jelszó frissítése</button>
+                </div>
+                <div id="pwMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+
+                <div class="sep"></div>
+
+                <h3 class="muted">E-mail csere (opcionális)</h3>
+                <div class="row">
+                    <div><label>Új e-mail</label><input id="emNew" type="email" placeholder="uj@pelda.hu"/></div>
+                    <div><label>Jelszó megerősítés</label><input id="emPw" type="password" placeholder="••••••••"/></div>
+                    <div style="align-self:end;"><button id="btnChangeEmail" class="ghost">E-mail módosítása</button></div>
+                </div>
+                <div id="emMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+
+                <div class="sep"></div>
+
+                <h3 class="muted">Fiók információk</h3>
+                <div class="row">
+                    <div><label>Létrehozva</label><input id="accCreated" readonly/></div>
+                    <div><label>Utoljára belépve</label><input id="accLastLogin" readonly/></div>
+                </div>
+                <div class="row">
+                    <div><label>Adatkezelés elfogadva</label><input id="privAcceptedAt" readonly/></div>
+                    <div><label>Verzió</label><input id="privVersion" readonly/></div>
+                    <div><label>IP</label><input id="privIp" readonly/></div>
+                </div>
+
+                <!-- Veszélyes művelet -->
+                <div class="sep"></div>
+                <h3 class="muted">Veszélyes művelet</h3>
+                <div id="selfDeleteWrap" class="row">
+                    <div>
+                        <p id="selfDeleteNote" class="muted" style="margin:.25rem 0 .5rem 0;">
+                            A fiók törlése végleges.
+                        </p>
+                        <button id="btnDeleteSelf" class="danger">Fiókom törlése</button>
+                    </div>
+                </div>
+                <div id="delMsg" class="muted" style="margin-top:.5rem;min-height:1.2rem;"></div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    // --- Theme toggle
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) document.body.setAttribute('data-theme', savedTheme);
+    document.getElementById('btnTheme').onclick = () => {
+        const cur = document.body.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    };
+
+    // --- Mini helper
+    const $ = s => document.querySelector(s);
+
+    function show(id){
+        const sections = ['viewSetup','viewUsers','viewConsents','viewAccount','viewConfig'];
+        sections.forEach(sec => {
+            const el = document.getElementById(sec);
+            if (el) el.classList.toggle('hidden', sec !== id);
+        });
+        const activeMap = {
+            viewSetup:'navSetup', viewUsers:'navUsers', viewConsents:'navConsents',
+            viewAccount:'navAccount', viewConfig:'navConfig'
+        };
+        ['navSetup','navUsers','navConsents','navAccount','navConfig'].forEach(btnId => {
+            const el = document.getElementById(btnId);
+            if (el) el.classList.toggle('active', btnId === activeMap[id]);
+        });
+    }
+
+    // Nav események
+    $('#navSetup').onclick    = () => show('viewSetup');
+    $('#navUsers').onclick    = () => { show('viewUsers'); loadUsers(); };
+    $('#navConsents').onclick = () => { show('viewConsents'); loadConsents(); };
+    $('#navAccount').onclick  = () => { show('viewAccount'); loadAccount(); };
+    $('#navConfig').onclick   = () => { show('viewConfig'); $('#btnCfgLoad')?.click(); };
+
+    // induláskor pl.:
+    show('viewUsers');
+
+    async function api(path, opts={}) {
+        const res = await fetch(path, Object.assign({
+            method:'GET', headers:{'Content-Type':'application/json'}
+        }, opts));
+        const isJson = (res.headers.get('content-type')||'').includes('application/json');
+        const data = isJson ? await res.json() : await res.text();
+        if (!res.ok) throw new Error((data && data.error) || res.statusText);
+        return data;
+    }
+
+    function setBadge(me){
+        const badge = document.getElementById('accountBadge');
+        const roleBadge = document.getElementById('roleBadge');
+        if (me){
+            badge.textContent = me.email + ' · ' + me.role;
+            badge.classList.add('ok'); badge.classList.remove('warn');
+            if (roleBadge) roleBadge.textContent = 'Szereped: ' + me.role;
+            const meBox = document.getElementById('meBox');
+            if (meBox) meBox.textContent = `${me.email} · ${me.role}`;
+        } else {
+            badge.textContent = 'Nincs bejelentkezve';
+            badge.classList.remove('ok'); badge.classList.add('warn');
+            if (roleBadge) roleBadge.textContent = '—';
+        }
+    }
+
+    // --- Navigáció (nincs navLogin)
+    document.getElementById('navSetup').onclick    = ()=> show('viewSetup');
+    document.getElementById('navUsers').onclick    = ()=> { show('viewUsers'); loadUsers(); };
+    document.getElementById('navConsents').onclick = ()=> { show('viewConsents'); loadConsents(); };
+    document.getElementById('navAccount').onclick  = ()=> { show('viewAccount'); loadAccount(); };
+    document.getElementById('navBack').onclick     = ()=> { location.href = 'menu.html'; };
+    document.getElementById('navLogout').onclick   = logout;
+
+    // --- Kijelentkezés (navbar + Account nézet)
+    async function logout(){
+        try { await api('/admin/auth/logout', {method:'POST'}); }
+        catch(e){}
+        location.href = '/login.html';
+    }
+
+    // --- Setup owner
+    document.getElementById('btnSetup').onclick = async () => {
+        const token = $('#setupToken').value.trim();
+        const email = $('#setupEmail').value.trim();
+        const password = $('#setupPass').value;
+        const display_name = $('#setupName').value.trim();        // ⬅️ ÚJ
+        $('#setupMsg').textContent = 'Létrehozás…';
+        try{
+            const res = await fetch('/admin/setup/owner', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','x-setup-token':token},
+                body: JSON.stringify({ email, password, display_name }) // ⬅️ ÚJ
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Hiba');
+            $('#setupMsg').textContent = `Owner létrehozva (id ${data.user_id}).`;
+            show('viewUsers');
+        }catch(e){ $('#setupMsg').textContent = e.message; }
+    };
+
+    // --- Users
+    let __usersCache = [];
+
+    function renderUsers(rows){
+        const tb = document.getElementById('usersTbody');
+        if (!rows.length){
+            tb.innerHTML = '<tr><td colspan="6" class="muted">Nincs találat</td></tr>';
+            return;
+        }
+        tb.innerHTML = rows.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td>
+              <div>${u.display_name || '—'}</div>
+              <div class="muted" style="font-size:.85rem;">${u.username ? '@'+u.username : '—'}</div>
+            </td>
+          <td>${u.email}</td>
+          <td>
+            <select data-id="${u.id}">
+              <option${u.role==='viewer'?' selected':''}>viewer</option>
+              <option${u.role==='analyst'?' selected':''}>analyst</option>
+              <option${u.role==='operator'?' selected':''}>operator</option>
+              <option${u.role==='admin'?' selected':''}>admin</option>
+              <option${u.role==='owner'?' selected':''} disabled>owner</option>
+            </select>
+          </td>
+          <td>${u.last_login||'—'}</td>
+          <td>
+            <button class="ghost small" data-act="save" data-id="${u.id}">Mentés</button>
+            ${(window.__me && window.__me.role==='owner' && u.role!=='owner')
+            ? `<button class="danger small" data-act="del" data-id="${u.id}" data-email="${u.email}">Törlés</button>` : ''}
+          </td>
+        </tr>`).join('');
+    }
+
+    function filterUsers(q){
+        q = (q||'').trim().toLowerCase();
+        if (!q) return __usersCache;
+        return __usersCache.filter(u =>
+            String(u.id).includes(q) ||
+            (u.display_name||'').toLowerCase().includes(q) ||
+            (u.username||'').toLowerCase().includes(q) ||   // ‼️ ÚJ
+            (u.email||'').toLowerCase().includes(q) ||
+            (u.role||'').toLowerCase().includes(q)
+        );
+    }
+
+    function usersToCsv(rows){
+        const head = ['id','display_name','username','email','role','created_at','last_login']; // ‼️ ÚJ oszlop
+        const esc = s => `"${String(s??'').replace(/"/g,'""')}"`;
+        const body = rows.map(r => head.map(k => esc(r[k])).join(',')).join('\n');
+        return head.join(',') + '\n' + body;
+    }
+
+    async function loadUsers(){
+        try{
+            const data = await api('/admin/users');
+            // cache + első render
+            __usersCache = data.items || [];
+            renderUsers(__usersCache);
+
+            // ---- eseménykezelők: csak egyszer kötjük be ----
+            const tb = document.getElementById('usersTbody');
+            if (tb && !tb.__wired){
+                tb.__wired = true;
+                tb.addEventListener('click', async (ev) => {
+                    // törlés
+                    const delBtn = ev.target.closest('button[data-act="del"]');
+                    if (delBtn) {
+                        const id = delBtn.getAttribute('data-id');
+                        const email = delBtn.getAttribute('data-email');
+                        if (!confirm(`Törlöd ezt a felhasználót?\n${email} (id=${id})`)) return;
+                        try{
+                            await api(`/admin/users/${id}`, { method:'DELETE', body: JSON.stringify({ reason: 'admin-ui' }) });
+                            $('#usersMsg').textContent = 'Felhasználó törölve';
+                            await loadUsers();
+                        }catch(e){
+                            $('#usersMsg').textContent = e.message;
+                        }
+                        return;
+                    }
+                    // szerep mentése
+                    const btn = ev.target.closest('button[data-act="save"]');
+                    if (!btn) return;
+                    const id = btn.getAttribute('data-id');
+                    const sel = tb.querySelector(`select[data-id="${id}"]`);
+                    const role = sel?.value;
+                    try{
+                        await api(`/admin/users/${id}`, { method:'PATCH', body: JSON.stringify({ role }) });
+                        $('#usersMsg').textContent = 'Szerep frissítve';
+                        await loadUsers();
+                    }catch(e){
+                        $('#usersMsg').textContent = e.message;
+                    }
+                });
+            }
+
+            // kereső bekötése
+            const inp = document.getElementById('userSearch');
+            if (inp && !inp.__wired){
+                inp.__wired = true;
+                let t;
+                inp.addEventListener('input', () => {
+                    clearTimeout(t);
+                    t = setTimeout(() => renderUsers(filterUsers(inp.value)), 120);
+                });
+            }
+
+            // CSV export
+            const btn = document.getElementById('btnExportUsers');
+            if (btn && !btn.__wired){
+                btn.__wired = true;
+                btn.addEventListener('click', () => {
+                    const q = document.getElementById('userSearch')?.value || '';
+                    const rows = filterUsers(q);
+                    const csv = usersToCsv(rows);
+                    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `users_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+                    a.click();
+                });
+            }
+        }catch(e){
+            document.getElementById('usersTbody').innerHTML =
+                `<tr><td colspan="6" class="muted">${e.message}</td></tr>`;
+        }
+    }
+
+    // --- Consents
+    document.getElementById('btnLoadConsents').onclick = loadConsents;
+    async function loadConsents(){
+        const wa = $('#qWa').value.trim();
+        const scope = $('#qScope').value || '';
+        const qs = new URLSearchParams(); if (wa) qs.set('wa_id', wa); if (scope) qs.set('scope', scope);
+        try{
+            const data = await api('/admin/consents' + (qs.toString()?`?${qs}`:''));
+            const tb = document.getElementById('consentsTbody');
+            if (!data.items || !data.items.length){
+                tb.innerHTML = '<tr><td colspan="7" class="muted">Nincs találat</td></tr>';
+                return;
+            }
+            tb.innerHTML = '';
+            for (const c of data.items){
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td>${c.id}</td>
+          <td>${c.wa_id}</td>
+          <td><span class="tag">${c.scope}</span></td>
+          <td>${c.source||'—'}</td>
+          <td>${c.granted_at}</td>
+          <td>${c.revoked_at||'—'}</td>
+          <td>${c.revoked_at ? '' : `<button class="danger small" data-revoke="${c.id}">Visszavonás</button>`}</td>`;
+                tb.appendChild(tr);
+            }
+            tb.onclick = async (ev) => {
+                const btn = ev.target.closest('button[data-revoke]'); if (!btn) return;
+                const id = btn.getAttribute('data-revoke');
+                try{ await api(`/admin/consents/${id}/revoke`, {method:'POST'}); loadConsents(); }
+                catch(e){ document.getElementById('consentsMsg').textContent = e.message; }
+            };
+        }catch(e){
+            document.getElementById('consentsTbody').innerHTML = `<tr><td colspan="7" class="muted">${e.message}</td></tr>`;
+        }
+    }
+
+    // --- Saját fiók betöltése és műveletek
+    async function loadAccount(){
+        try{
+            const data = await api('/admin/account');
+            const m = data.me || {};
+
+            $('#accEmail').value = m.email || '';
+            $('#accRole').value  = m.role || '';
+            $('#accDisplayName').value = m.display_name || '';
+            $('#accUsername').value    = m.username || '';
+
+            const nameInput = $('#accDisplayName');
+            const nameCooldownNote = $('#nameCooldown');   // <-- átnevezve
+            if (m.name_change_locked) {
+                nameInput.disabled = true;
+                nameCooldownNote.textContent = `A név 30 naponta módosítható. Következő leghamarabb: ${m.name_locked_until}`;
+            } else {
+                nameInput.disabled = false;
+                nameCooldownNote.textContent = '';
+            }
+
+            $('#accCreated').value = m.created_at || '';
+            $('#accLastLogin').value = m.last_login || '';
+            $('#privAcceptedAt').value = m.privacy_accepted_at || '—';
+            $('#privVersion').value    = m.privacy_version || '—';
+            $('#privIp').value         = m.privacy_accepted_ip || '—';
+
+            const namePart = m.display_name ? (m.display_name + ' · ') : '';
+            const meTxt = `${namePart}${m.email} · ${m.role}`;
+            const meBox = $('#meBox');
+            if (meBox) meBox.textContent = meTxt;
+
+            const selfWrap = document.getElementById('selfDeleteWrap');
+            if (selfWrap) selfWrap.style.display = '';
+
+            const deleteNote = document.getElementById('selfDeleteNote'); // <-- átnevezve
+            if (deleteNote) {
+                deleteNote.textContent = (m.role === 'owner')
+                    ? 'Ownerként a törlés csak akkor engedélyezett, ha marad másik owner.'
+                    : 'A fiók törlése végleges.';
+            }
+
+            const btnSelf = document.getElementById('btnDeleteSelf');
+            if (btnSelf) btnSelf.onclick = async () => {
+                const confirmMsg = (m.role === 'owner')
+                    ? 'Owner vagy. A törlés csak akkor engedélyezett, ha marad másik owner. Folytatod?'
+                    : 'Biztosan törlöd a fiókodat? Ez végleges művelet.';
+                if (!confirm(confirmMsg)) return;
+
+                try{
+                    await api('/admin/account/delete', { method:'POST' }); // <-- elég, ha lefut hiba nélkül
+                    location.href = '/login.html';
+                }catch(e){
+                    document.getElementById('delMsg').textContent = e.message || 'Hiba a törléskor.';
+                }
+            };
+        }catch(e){
+            $('#accMsg').textContent = e.message || 'Hiba a fiók betöltésekor';
+        }
+    }
+
+    // Profil mentése (display_name)
+    document.getElementById('btnSaveProfile').onclick = async () => {
+        const display_name = $('#accDisplayName').value.trim();
+        const username     = $('#accUsername').value.trim();
+        $('#accMsg').textContent = 'Mentés…';
+        try{
+            const res = await api('/admin/account', {
+                method:'PATCH',
+                body: JSON.stringify({ display_name, username: username || null })
+            });
+            $('#accMsg').textContent = 'Profil frissítve.';
+            loadAccount();
+        }catch(e){
+            $('#accMsg').textContent = e.message;
+        }
+    };
+
+    // Jelszó módosítás
+    document.getElementById('btnChangePw').onclick = async () => {
+        const current_password = $('#pwCur').value;
+        const new_password = $('#pwNew').value;
+        const new_password2 = $('#pwNew2').value;
+        if (new_password !== new_password2) {
+            $('#pwMsg').textContent = 'Az új jelszavak nem egyeznek.';
+            return;
+        }
+        $('#pwMsg').textContent = 'Frissítés…';
+        try{
+            await api('/admin/account/change-password', {
+                method:'POST',
+                body: JSON.stringify({ current_password, new_password })
+            });
+            $('#pwMsg').textContent = 'Jelszó frissítve.';
+            $('#pwCur').value=''; $('#pwNew').value=''; $('#pwNew2').value='';
+        }catch(e){
+            $('#pwMsg').textContent = e.message;
+        }
+    };
+
+    // Email csere
+    document.getElementById('btnChangeEmail').onclick = async () => {
+        const new_email = $('#emNew').value.trim();
+        const password  = $('#emPw').value;
+        if (!new_email || !password){
+            $('#emMsg').textContent = 'Add meg az új e-mailt és a jelszót.';
+            return;
+        }
+        $('#emMsg').textContent = 'Módosítás…';
+        try{
+            const res = await api('/admin/account/change-email', {
+                method:'POST',
+                body: JSON.stringify({ new_email, password })
+            });
+            $('#emMsg').textContent = 'E-mail frissítve.';
+            // badge frissítés
+            if (res.me) setBadge(res.me);
+            // új email megjelenítése
+            $('#accEmail').value = res.me?.email || new_email;
+            $('#emNew').value=''; $('#emPw').value='';
+        }catch(e){
+            $('#emMsg').textContent = e.message;
+        }
+    };
+
+    // --- Induláskor: me() — ha nincs auth, azonnal login.html
+    (async () => {
+        try{
+            const data = await api('/admin/me');
+            window.__me = data.me;
+            setBadge(data.me);
+            if (!window.__me || window.__me.role !== 'owner') {
+                const btnCfg = document.getElementById('navConfig');
+                if (btnCfg) btnCfg.style.display = 'none';       // tab a menüből eltűnik
+                // ha valaki direkt URL-lel próbál oda menni, az API úgyis 403-at ad
+            } else {
+                // owner esetén a tab kattintásra töltsük be az értékeket
+                document.getElementById('navConfig').onclick = () => { show('viewConfig'); loadEnvAll(); };
+            }
+            show('viewUsers');
+            loadUsers();
+        }catch{
+            location.href = '/login.html';
+        }
+    })();
+
+    // Nav kapcsolók
+    const $nav = s => document.querySelector(s);
+    const $v   = s => document.querySelector(s);
+    $nav('#navConfig')?.addEventListener('click', ()=>{
+        ['#viewUsers','#viewConsents','#viewAccount','#viewSetup'].forEach(id => $v(id)?.classList.add('hidden'));
+        $v('#viewConfig')?.classList.remove('hidden');
+        // betöltés automatikusan
+        document.getElementById('btnCfgLoad')?.click();
+    });
+
+    async function apiJson(path, opts={}) {
+        const res = await fetch(path, Object.assign({ headers:{'Content-Type':'application/json'} }, opts));
+        const isJson = (res.headers.get('content-type')||'').includes('application/json');
+        const data = isJson ? await res.json() : await res.text();
+        if (!res.ok) throw new Error((data && data.error) || res.statusText);
+        return data;
+    }
+
+    document.getElementById('btnCfgLoad')?.addEventListener('click', async ()=>{
+        const msg = document.getElementById('cfgMsg');
+        msg.textContent = 'Betöltés…';
+        try{
+            const { config } = await apiJson('/admin/config/whatsapp');
+            document.getElementById('cfgWabaId').value   = config?.WHATSAPP_BUSINESS_ACCOUNT_ID || '';
+            document.getElementById('cfgPhoneId').value  = config?.PHONE_NUMBER_ID || '';
+            document.getElementById('cfgAccessToken').placeholder = config?.ACCESS_TOKEN_MASKED || '';
+            document.getElementById('cfgVerifyToken').placeholder = config?.VERIFY_TOKEN_MASKED || '';
+            msg.textContent = 'Kész.';
+        }catch(e){
+            msg.textContent = e.message; msg.style.color = 'crimson';
+        }
+    });
+
+    document.getElementById('btnCfgSave')?.addEventListener('click', async ()=>{
+        const msg = document.getElementById('cfgMsg'); msg.style.color = '';
+        msg.textContent = 'Mentés…';
+        try{
+            const body = {
+                WHATSAPP_BUSINESS_ACCOUNT_ID: document.getElementById('cfgWabaId').value.trim(),
+                PHONE_NUMBER_ID: document.getElementById('cfgPhoneId').value.trim()
+            };
+            const acc = document.getElementById('cfgAccessToken').value.trim();
+            const ver = document.getElementById('cfgVerifyToken').value.trim();
+            if (acc) body.ACCESS_TOKEN = acc;
+            if (ver) body.VERIFY_TOKEN = ver;
+
+            await apiJson('/admin/config/whatsapp', { method:'PUT', body: JSON.stringify(body) });
+            msg.textContent = 'Beállítások frissítve (.env is)!';
+        }catch(e){
+            msg.textContent = e.message; msg.style.color = 'crimson';
+        }
+    });
+
+    function renderEnv(items){
+        const wrap = document.getElementById('envForm');
+        if (!wrap) return;
+
+        const sens = items.filter(i => i.sensitive);
+        const pub  = items.filter(i => !i.sensitive);
+
+        function rowHtml(i){
+            const id   = `env_${i.key}`;
+            const warn = i.restart
+                ? `<span class="badge warn" style="margin-left:.5rem;">⚠️ újraindítás</span>`
+                : '';
+            const star = i.sensitive ? '★ ' : '';
+            const input = i.sensitive
+                ? `<input type="password" id="${id}" data-key="${i.key}" data-sensitive="1" placeholder="${i.value || ''}" />`
+                : `<input id="${id}" data-key="${i.key}" value="${(i.value ?? '').replace(/"/g,'&quot;')}" />`;
+
+            return `<div class="row"><div><label>${star}${i.key}${warn}</label>${input}</div></div>`;
+        }
+
+        function groupHtml(title, list){
+            if (!list.length) return '';
+            return `<h3 class="muted" style="margin-top:.75rem;">${title}</h3>` + list.map(rowHtml).join('');
+        }
+
+        wrap.innerHTML =
+            groupHtml('Érzékeny (titkos) kulcsok', sens) +
+            groupHtml('Általános kulcsok', pub);
+    }
+
+    async function loadEnvAll(){
+        const msg = document.getElementById('envMsg'); if (msg) { msg.style.color=''; msg.textContent='Betöltés…'; }
+        try{
+            const { items } = await api('/admin/config/env');
+            renderEnv(items || []);
+            if (msg) msg.textContent = 'Kész.';
+        }catch(e){
+            if (msg) { msg.textContent = e.message || 'Hiba a beolvasáskor'; msg.style.color='crimson'; }
+        }
+    }
+
+    async function saveEnvAll(){
+        const msg = document.getElementById('envMsg');
+        const btn = document.getElementById('btnEnvSave'); // ha van külön mentés gombod
+        if (msg) { msg.style.color=''; msg.textContent='Mentés…'; }
+        if (btn) { btn.disabled = true; }
+
+        try{
+            const inputs = Array.from(document.querySelectorAll('#envForm [data-key]'));
+            const updates = {};
+
+            for (const el of inputs){
+                const key = el.getAttribute('data-key');
+                const isSecret = el.getAttribute('data-sensitive') === '1';
+                const val = (el.value ?? '').trim();
+
+                if (isSecret) {
+                    // titkos: csak akkor küldjük, ha tényleg írt be újat
+                    if (val !== '') updates[key] = val;
+                } else {
+                    // publikus: mindig küldjük (ha szeretnél diffet, itt tudnál összehasonlítani az eredetivel)
+                    updates[key] = val;
+                }
+            }
+
+            // ha nincs változás, ne kérjünk mentést
+            if (Object.keys(updates).length === 0) {
+                if (msg) { msg.textContent = 'Nincs módosítás, nincs mit menteni.'; }
+                return;
+            }
+
+            const res = await api('/admin/config/env', {
+                method:'PUT',
+                body: JSON.stringify({ updates })
+            });
+
+            let txt = (res.message || 'Beállítások frissítve (.env)!');
+            if (res.restartNeeded) {
+                txt += `  ⚠️ A következő kulcsok miatt újraindítás ajánlott: ${res.restartKeys.join(', ')}`;
+            }
+            if (msg) { msg.style.color=''; msg.textContent = txt; }
+
+            // 1) titkos mezők ürítése
+            document.querySelectorAll('#envForm [data-sensitive="1"]').forEach(el => {
+                const k = el.getAttribute('data-key');
+                el.value = '';
+                // 2) új maszkolt placeholder, ha a backend visszaküldi (pl. res.masked)
+                if (res.masked && res.masked[k]) el.placeholder = res.masked[k];
+            });
+
+            // 3) ha a backend visszaadja az új listát, rendereld újra (különben hagyhatod így is)
+            if (res.items) renderEnv(res.items);
+
+        }catch(e){
+            if (msg) { msg.textContent = e.message || 'Hiba a mentéskor'; msg.style.color='crimson'; }
+        }finally{
+            if (btn) { btn.disabled = false; }
+        }
+    }
+
+    // gombok
+    document.getElementById('btnEnvLoad')?.addEventListener('click', loadEnvAll);
+    document.getElementById('btnEnvSave')?.addEventListener('click', saveEnvAll);
+
+    // ha a tabot külön is elérnéd:
+    document.getElementById('navConfig')?.addEventListener('click', () => {
+        if (window.__me && window.__me.role === 'owner') loadEnvAll();
+    });
+</script>
+</body>
+</html>

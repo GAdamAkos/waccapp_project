@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #111;
+      --accent: #26a69a;
+      --input: #f0f0f0;
+      --border: #ccc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e1e1e;
+        --text: #eee;
+        --accent: #26a69a;
+        --input: #2c2c2c;
+        --border: #444;
+      }
+    }
+    [data-theme="dark"] {
+      --bg: #1e1e1e;
+      --text: #eee;
+      --input: #2c2c2c;
+      --border: #444;
+    }
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --text: #111;
+      --input: #f0f0f0;
+      --border: #ccc;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      transition: background 0.3s, color 0.3s;
+      text-align: center;
+    }
+
+    .topbar{
+      max-width: 900px;
+      margin: 0 auto 1rem;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr; /* bal – közép – jobb */
+      align-items: center;
+      gap: 1rem;
+    }
+    .top-left  { justify-self: start; }
+    .top-center{ justify-self: center; }
+    .top-right { justify-self: end; display: flex; gap: .5rem; align-items: center; }
+
+    .badge {
+      display: inline-block;
+      padding: .4rem .6rem;
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      font-size: .9rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .top-actions { display: flex; gap: .5rem; align-items: center; }
+
+    .theme-toggle{
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      padding: 0;
+    }
+    .theme-toggle:hover,
+    .theme-toggle:focus,
+    .theme-toggle:active{
+      outline: none;
+      background: transparent;
+      box-shadow: none;
+    }
+    .logout-btn {
+      padding: .45rem .75rem;
+      border-radius: .6rem;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    h1 { margin: 1rem 0 2rem; }
+
+    .button-container {
+      max-width: 600px;
+      margin: 2rem auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .dashboard-button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+    .dashboard-button:hover { background-color: #1e837b; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="top-left">
+    <div id="accountBadge" class="badge">Ellenőrzés…</div>
+  </div>
+
+  <div class="top-center">
+    <button type="button" class="theme-toggle" onclick="toggleTheme()">🌓 Téma váltása</button>
+  </div>
+
+  <div class="top-right">
+    <button id="btnLogout" class="logout-btn" type="button">Kijelentkezés</button>
+  </div>
+</div>
+
+<h1>Válassz oldalt</h1>
+
+<div class="button-container" id="buttons">
+  <button class="dashboard-button" onclick="location.href='index.html'">Beszélgetés indítása</button>
+  <button class="dashboard-button" onclick="location.href='conv.html'">Csevegés</button>
+  <button class="dashboard-button" onclick="location.href='filter.html'">Üzenetek szűrése</button>
+  <button class="dashboard-button" onclick="location.href='template-menu.html'">Sablon/Kérdőív szerkesztő</button>
+
+  <!-- Admin gomb: alapból rejtve, csak admin/ownernek mutatjuk -->
+  <button id="btnAdmin" class="dashboard-button" style="display:none" onclick="location.href='admin.html'">
+    Admin felület
+  </button>
+  <!-- ÚJ: Saját fiók gomb (nem admin/owner esetén) -->
+  <button id="btnAccount" class="dashboard-button" style="display:none" onclick="location.href='account.html'">
+    Saját fiók
+  </button>
+</div>
+
+<script>
+  function toggleTheme() {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) document.body.setAttribute('data-theme', savedTheme);
+  });
+
+  // 🔐 Auth ellenőrzés + admin gomb megjelenítés
+  (async () => {
+    try {
+      const res = await fetch('/admin/me');
+      if (res.status === 401) { location.href = '/login.html'; return; }
+      const { me } = await res.json();
+
+      // badge
+      const badge = document.getElementById('accountBadge');
+      if (me && me.email) badge.textContent = `${me.email} · ${me.role || '—'}`;
+      else badge.textContent = 'Bejelentkezve';
+
+      // admin / account gomb
+      if (me && ['admin','owner'].includes(me.role)) {
+        document.getElementById('btnAdmin').style.display = 'block';
+      } else {
+        document.getElementById('btnAccount').style.display = 'block';
+      }
+    } catch (e) {
+      // hiba esetén is vissza a loginra
+      location.href = '/login.html';
+    }
+  })();
+
+  // 🚪 Kijelentkezés
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    try {
+      await fetch('/admin/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    } catch {}
+    location.href = '/login.html';
+  });
+</script>
+
+</body>
+</html>

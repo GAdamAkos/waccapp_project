@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egyszerű WhatsApp sablon létrehozása</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #111;
+            --accent: #26a69a;
+            --input: #f0f0f0;
+            --border: #ccc;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1e1e1e;
+                --text: #eee;
+                --accent: #26a69a;
+                --input: #2c2c2c;
+                --border: #444;
+            }
+        }
+        [data-theme="dark"] {
+            --bg: #1e1e1e;
+            --text: #eee;
+            --input: #2c2c2c;
+            --border: #444;
+        }
+        [data-theme="light"] {
+            --bg: #ffffff;
+            --text: #000000;
+            --input: #f0f0f0;
+            --border: #ccc;
+        }
+
+        * { box-sizing: border-box; }
+        body{
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            transition: background .3s, color .3s;
+        }
+        .container{
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,.1);
+            max-width: 600px; /* <- ugyanaz mint a menu oldalon */
+            width: 100%;
+        }
+
+        .theme-toggle {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .theme-toggle button {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;   /* ⇐ ugyanakkora, mint a template-menu/index oldalakon */
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        label{ display:block; margin-top:1rem; font-weight:500; }
+        input, textarea, select{
+            width:100%;
+            padding:.75rem;
+            margin-top:.3rem;
+            border:1px solid var(--border);
+            border-radius:.5rem;
+            background:var(--input);
+            color:var(--text);
+            font-size:1rem;
+        }
+        textarea{ height:120px; resize:vertical; }
+
+        .card{
+            background: var(--input);
+            color: var(--text);
+            padding: 1rem;
+            border-radius: .5rem;
+            border: 1px solid var(--border);
+            margin-top: 1rem;
+        }
+        /* Gomb-sor layout */
+        .btn-row{
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: .75rem;
+            align-items: center;
+            margin-top: .6rem;
+        }
+        .btn-row input[type="text"]{
+            width: 100%;
+            padding: .8rem;
+            border: 1px solid var(--border);
+            border-radius: .6rem;
+            background: var(--input);
+            color: var(--text);
+            box-sizing: border-box;
+        }
+        .btn-row .btn{
+            width: auto;            /* ne legyen teljes szélességű */
+            padding: .6rem 1rem;
+        }
+
+
+        .actions{ display:flex; gap:1rem; justify-content:center; margin-top:1.5rem; }
+        .action{
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            background: var(--accent);
+            color:#fff;
+            border:none;
+            border-radius:.5rem;
+            cursor:pointer;
+        }
+        .action:hover{ background:#00796b; }
+        .danger{ background:#c62828; }
+        .ghost{
+            background: transparent;
+            color: var(--accent);
+            border:1px solid var(--accent);
+        }
+
+        pre{
+            background: var(--input);
+            color: var(--text);
+            padding: 1rem;
+            border-radius: .5rem;
+            border: 1px solid var(--border);
+            white-space: pre-wrap;
+            margin-top: 1rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: .9rem;
+        }
+        /* ugyanaz a stílus, mint template.html-ben */
+        .add-btn{
+            padding: .75rem 1.5rem;
+            background: var(--accent);
+            color:#fff;
+            border:none;
+            border-radius:.5rem;
+            cursor:pointer;
+            font-size:1rem;
+        }
+        .add-btn:hover{ background:#00796b; }
+
+        .remove-button{
+            background: crimson;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: .5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background .3s;
+        }
+        .remove-button:hover{ background: darkred; }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="theme-toggle">
+        <button onclick="toggleTheme()">🌓 Téma váltása</button>
+    </div>
+
+    <h1> Egyszerű sablon (Meta)</h1>
+
+    <label for="tpl_name">Sablon neve</label>
+    <input id="tpl_name" placeholder="pl. koszonto_2025_tavasz">
+
+    <div class="card">
+        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+            <div style="flex:1;">
+                <label for="tpl_lang">Nyelv</label>
+                <select id="tpl_lang">
+                    <option value="hu">hu</option>
+                    <option value="en">en</option>
+                    <option value="de">de</option>
+                </select>
+            </div>
+            <div style="flex:1;">
+                <label for="tpl_cat">Kategória</label>
+                <select id="tpl_cat">
+                    <option value="UTILITY">UTILITY</option>
+                    <option value="MARKETING">MARKETING</option>
+                    <option value="AUTHENTICATION">AUTHENTICATION</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <label for="tpl_body">Üzenet (BODY)</label>
+    <textarea id="tpl_body" placeholder="Írd ide a sablon szövegét. Paraméterekhez: {{1}}, {{2}} ..."></textarea>
+
+    <div class="card">
+        <strong>Gombok (opcionális)</strong>
+        <div id="btn_wrap"></div>
+        <div class="actions" style="margin-top:1rem;">
+            <button class="add-btn" type="button" id="btnAdd">➕ Gomb hozzáadása</button>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="action" type="button" onclick="send()"> Sablon létrehozása</button>
+        <button class="action danger" type="button" onclick="clearForm()">Sablon törlése</button>
+    </div>
+
+    <div class="actions">
+        <button class="action" type="button" onclick="location.href='template-menu.html'">
+            Vissza a szerkesztőbe
+        </button>
+    </div>
+
+    <pre id="out"></pre>
+</div>
+
+<script>
+    // téma
+    function applyTheme(theme){
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }
+    function toggleTheme(){
+        const cur = localStorage.getItem('theme') || 'light';
+        applyTheme(cur === 'dark' ? 'light' : 'dark');
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+        applyTheme(localStorage.getItem('theme') || 'light');
+
+        // ⬅️ kötés a "Gomb hozzáadása" gombra
+        const btnAdd = document.getElementById('btnAdd');
+        if (btnAdd) btnAdd.addEventListener('click', ()=> addBtn());
+    });
+
+    // Meta név-tisztító
+    function sanitizeTemplateName(name){
+        let s = (name || '').trim().toLowerCase();
+        s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        s = s.replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+        if (!/^[a-z]/.test(s)) s = 't_' + s;
+        return s || 't_default';
+    }
+
+    // ➕ új gombsor hozzáadása
+    function addBtn(text=''){
+        const row = document.createElement('div');
+        row.className = 'btn-row';
+        const safe = String(text || '').replace(/"/g, '&quot;');
+        row.innerHTML = `
+      <input type="text" class="btn-input" placeholder="Gomb szövege" value="${safe}">
+      <button type="button" class="remove-button">❌</button>
+    `;
+        // törlés gomb működése
+        row.querySelector('.remove-button').addEventListener('click', ()=> row.remove());
+        document.getElementById('btn_wrap').appendChild(row);
+    }
+
+    // küldés
+    async function send(){
+        const rawName  = document.getElementById('tpl_name').value;
+        const name     = sanitizeTemplateName(rawName);
+        const language = document.getElementById('tpl_lang').value;
+        const category = document.getElementById('tpl_cat').value;
+        const body     = document.getElementById('tpl_body').value.trim();
+
+        if (!name || !body) { alert('Adj meg nevet és BODY szöveget!'); return; }
+
+        const buttons = [...document.querySelectorAll('#btn_wrap .btn-input')]
+            .map(i => i.value.trim())
+            .filter(Boolean);
+
+        const payload = {
+            name, language, category,
+            components: [
+                { type:'BODY', text: body },
+                ...(buttons.length ? [{
+                    type:'BUTTONS',
+                    // max 10 gomb (Meta limit)
+                    buttons: buttons.slice(0,10).map(t => ({ type:'QUICK_REPLY', text:t }))
+                }] : [])
+            ]
+        };
+
+        try{
+            const res = await fetch('/create-template',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(payload)
+            });
+            const json = await res.json();
+            document.getElementById('out').textContent = JSON.stringify(json, null, 2);
+            if(!res.ok) alert('❌ Hiba a sablon létrehozásakor (részletek lent).');
+            else alert('✅ Sablon kérelem elküldve a Meta felé.');
+        }catch(e){
+            alert('❌ Hálózati hiba.');
+        }
+    }
+
+    function clearForm(){
+        document.getElementById('tpl_name').value='';
+        document.getElementById('tpl_body').value='';
+        document.getElementById('btn_wrap').innerHTML='';
+    }
+</script>
+
+</body>
+</html>

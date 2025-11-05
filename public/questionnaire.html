@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kérdőívszerkesztő (Szöveges válasz alapján)</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #111;
+            --accent: #26a69a;
+            --input: #f0f0f0;
+            --border: #ccc;
+        }
+
+        body[data-theme="dark"] {
+            --bg: #1e1e1e;
+            --text: #eee;
+            --accent: #26a69a;
+            --input: #2c2c2c;
+            --border: #444;
+        }
+
+        body[data-theme="light"] {
+            --bg: #ffffff;
+            --text: #111;
+            --accent: #26a69a;
+            --input: #f0f0f0;
+            --border: #ccc;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+            position: relative;
+        }
+
+        .container {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 700px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-left: 240px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent);
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 0.75rem;
+            margin-top: 0.3rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input);
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .answers input {
+            max-width: 100%;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            margin-top: 1.5rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: #00796b;
+        }
+
+        .question-block {
+            background: var(--input);
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+        }
+
+        .question-block input,
+        .question-block textarea {
+            background: var(--input);
+            color: var(--text);
+        }
+
+        .answers div {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .answers input {
+            flex: 1;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .theme-toggle {
+            text-align: right;
+            margin-bottom: 1rem;
+        }
+
+        .question-block {
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
+
+        #chainList li:hover {
+            text-decoration: underline;
+        }
+
+        select {
+            width: auto;
+            padding: 0.6rem 1rem;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            background: var(--input);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .button-row button,
+        .button-row select {
+            margin-top: 0;
+            margin-bottom: 0;
+            height: 2.8rem;
+        }
+
+        .button-row .button-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            justify-content: center;
+        }
+
+        .delete-button {
+            background: crimson;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .delete-button:hover {
+            background: darkred;
+        }
+        .action-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .action-row button {
+            margin-top: 0;
+        }
+
+    </style>
+</head>
+<body>
+
+<div style="position:fixed; left:1rem; top:2rem; bottom:2rem; width:220px; overflow:auto; background:var(--bg); border:1px solid var(--border); border-radius:1rem; padding:1rem; box-shadow:0 5px 20px rgba(0,0,0,0.05);">
+    <h3 style="color:var(--accent); font-size:1.1rem; margin-top:0;">📄 Kérdéslánc</h3>
+    <ul id="chainList" style="list-style:none; padding-left:0; font-size:0.9rem;"></ul>
+</div>
+
+<div class="container" id="app">
+    <div style="text-align: center; margin-bottom: 1rem;">
+        <button onclick="toggleTheme()">🌓 Téma váltása</button>
+    </div>
+
+    <h1 style="text-align: center;">📋 Kérdőívszerkesztő (szöveges válasz alapján)</h1>
+
+    <label for="theme">Kérdőív témája:</label>
+    <input type="text" id="theme" placeholder="pl. kiszallitas">
+
+    <label for="start">Kezdő kérdés azonosítója:</label>
+    <input type="text" id="start" placeholder="pl. q1">
+
+    <div id="questions" ondragover="onDragOver(event)"></div>
+
+    <div class="button-row" style="flex-wrap: wrap; gap: 0.8rem; justify-content: center; margin-top: 2rem;">
+        <button onclick="addQuestion()" class="button-icon">➕ Új kérdés hozzáadása</button>
+        <button onclick="saveQuestionnaire()" class="button-icon">💾 Mentés JSON fájlba</button>
+
+        <select id="importSelect">
+            <option value="">-- Válassz kérdőívet --</option>
+        </select>
+        <button onclick="importQuestionnaire()" class="button-icon">📂 Betöltés</button>
+
+        <button onclick="updateReferences()" class="button-icon">🔄 Hivatkozások frissítése</button>
+    </div>
+
+    <div style="margin-top: 3rem; text-align: center;">
+        <button onclick="window.location.href='menu.html'" class="button-icon">🏠 Vissza a menübe</button>
+    </div>
+</div>
+
+<script>
+    let questions = [];
+
+    function toggleTheme() {
+        const current = document.body.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        fetch('/available-questionnaires')
+            .then(res => res.json())
+            .then(themes => {
+                const select = document.getElementById('importSelect');
+                themes.forEach(theme => {
+                    const opt = document.createElement('option');
+                    opt.value = theme;
+                    opt.textContent = theme;
+                    select.appendChild(opt);
+                });
+            })
+            .catch(err => console.error('❌ Nem sikerült betölteni a kérdőív listát:', err));
+    });
+
+    function addQuestion() {
+        const qDiv = document.createElement('div');
+        qDiv.className = 'question-block';
+        qDiv.setAttribute('draggable', 'true');
+
+        qDiv.addEventListener('dragstart', () => {
+            qDiv.classList.add('dragging');
+        });
+
+        qDiv.addEventListener('dragend', () => {
+            qDiv.classList.remove('dragging');
+        });
+
+        qDiv.innerHTML = `
+      <label>Kérdés azonosító (pl. q1):</label>
+      <input type="text" class="q-id" placeholder="pl. q1">
+
+      <label>Kérdés szövege (pl. 1 - Igen\\n2 - Nem):</label>
+      <textarea class="q-text" rows="3" placeholder="pl. Sikerült a kiszállítás?\\n1 - Igen\\n2 - Nem"></textarea>
+
+      <label>Lehetséges válaszok (szám → következő kérdés azonosító):</label>
+      <div class="answers">
+        <div>
+          <input type="text" class="answer-key" placeholder="pl. 1">
+          <input type="text" class="answer-next" placeholder="Következő kérdés azonosító">
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button onclick="addAnswer(this)">➕ Válasz hozzáadása</button>
+        <button class="delete-button" onclick="deleteQuestion(this)">🗑️ Törlés</button>
+      </div>
+
+      <div class="reference-info" style="margin-top: 1rem; font-style: italic; color: var(--accent);"></div>
+    `;
+        document.getElementById('questions').appendChild(qDiv);
+        questions.push(qDiv);
+    }
+
+    function addAnswer(btn) {
+        const container = btn.closest('.question-block').querySelector('.answers');
+        const div = document.createElement('div');
+        div.innerHTML = `
+      <input type="text" class="answer-key" placeholder="pl. 1">
+      <input type="text" class="answer-next" placeholder="Következő kérdés azonosító">
+    `;
+        container.appendChild(div);
+    }
+
+    function saveQuestionnaire() {
+        const theme = document.getElementById('theme').value.trim();
+        const start = document.getElementById('start').value.trim();
+        const flow = {};
+
+        for (const q of questions) {
+            const id = q.querySelector('.q-id').value.trim();
+            const text = q.querySelector('.q-text').value.trim();
+            const answers = q.querySelectorAll('.answers > div');
+
+            if (!id || !text) continue;
+
+            flow[id] = {
+                text,
+                next: {}
+            };
+
+            answers.forEach(ans => {
+                const key = ans.querySelector('.answer-key').value.trim();
+                const next = ans.querySelector('.answer-next').value.trim();
+                if (key && next) flow[id].next[key] = next;
+            });
+        }
+
+        const questionnaire = {
+            [theme]: {
+                start,
+                flow
+            }
+        };
+
+        fetch('/save-questionnaire', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(questionnaire)
+        })
+            .then(res => res.json())
+            .then(data => alert('✅ Mentés sikeres: ' + JSON.stringify(data)))
+            .catch(err => alert('❌ Hiba történt: ' + err));
+    }
+
+    function updateReferences() {
+        const idMap = {};
+        const incomingLinks = {};
+        const outgoingLinks = {};
+        const startId = document.getElementById('start').value.trim(); // ← KELL az elejére!
+
+        questions.forEach(q => {
+            const id = q.querySelector('.q-id').value.trim();
+            if (id) {
+                idMap[id] = q;
+                incomingLinks[id] = 0;
+                outgoingLinks[id] = 0;
+            }
+        });
+
+        questions.forEach(source => {
+            const sourceId = source.querySelector('.q-id').value.trim();
+            const answers = source.querySelectorAll('.answers > div');
+            answers.forEach(ans => {
+                const targetId = ans.querySelector('.answer-next').value.trim();
+                if (targetId && sourceId) {
+                    incomingLinks[targetId] = (incomingLinks[targetId] || 0) + 1;
+                    outgoingLinks[sourceId] = (outgoingLinks[sourceId] || 0) + 1;
+                }
+            });
+        });
+
+        questions.forEach(q => {
+            const id = q.querySelector('.q-id').value.trim();
+            const refDiv = q.querySelector('.reference-info');
+            const box = q;
+            const currentTheme = document.body.getAttribute('data-theme') || 'light';
+
+            // Alap
+            box.style.background = 'var(--input)';
+            box.style.color = 'var(--text)';
+
+            // Színezés logika
+            if (id === startId) {
+                box.style.background = currentTheme === 'dark' ? '#1d4d1d' : '#d0f5d0';
+                box.style.color = currentTheme === 'dark' ? '#c3fccc' : '#111';
+            } else if (incomingLinks[id] > 1) {
+                box.style.background = currentTheme === 'dark' ? '#554400' : '#fff3c4';
+                box.style.color = currentTheme === 'dark' ? '#fff1b8' : '#111';
+            } else if (outgoingLinks[id] === 0) {
+                box.style.background = currentTheme === 'dark' ? '#4d1d1d' : '#ffd6d6';
+                box.style.color = currentTheme === 'dark' ? '#ffdada' : '#111';
+            }
+
+            // Hivatkozás lista kiírása
+            if (incomingLinks[id] > 0) {
+                const linkedFrom = Object.entries(flowFromMap(incomingLinks)).filter(e => e[0] === id && e[1] > 0).map(e => e[0]);
+                refDiv.textContent = `Előző kérdések: ${linkedFrom.join(', ')}`;
+            } else {
+                refDiv.textContent = '';
+            }
+        });
+
+        updateChainList();
+
+        // Belső kis segédfüggvény a filterhez
+        function flowFromMap(map) {
+            return Object.assign({}, map);
+        }
+    }
+
+    function updateChainList() {
+        const list = document.getElementById('chainList');
+        list.innerHTML = '';
+        const start = document.getElementById('start').value.trim();
+        const visited = new Set();
+        const map = {};
+
+        questions.forEach(q => {
+            const id = q.querySelector('.q-id').value.trim();
+            const answers = q.querySelectorAll('.answers > div');
+            map[id] = [];
+            answers.forEach(ans => {
+                const next = ans.querySelector('.answer-next').value.trim();
+                if (next) map[id].push(next);
+            });
+        });
+
+        function walk(id, depth = 0) {
+            if (!id || visited.has(id)) return;
+            visited.add(id);
+            const li = document.createElement('li');
+            li.textContent = `${'→ '.repeat(depth)}${id}`;
+            li.style.cursor = 'pointer';
+            li.style.marginBottom = '0.5rem';
+            li.onclick = () => {
+                const qBlock = [...questions].find(q => q.querySelector('.q-id').value.trim() === id);
+                if (qBlock) qBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            };
+            list.appendChild(li);
+            (map[id] || []).forEach(next => walk(next, depth + 1));
+        }
+
+        walk(start);
+    }
+
+    document.getElementById('questions').addEventListener('dragover', e => {
+        e.preventDefault();
+        const container = document.getElementById('questions');
+        const afterElement = getDragAfterElement(container, e.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (afterElement == null) {
+            container.appendChild(dragging);
+        } else {
+            container.insertBefore(dragging, afterElement);
+        }
+    });
+
+    function onDragOver(event) {
+        event.preventDefault();
+        const container = document.getElementById('questions');
+        const afterElement = getDragAfterElement(container, event.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (!dragging) return;
+
+        if (!afterElement) {
+            container.appendChild(dragging);
+        } else {
+            container.insertBefore(dragging, afterElement);
+        }
+    }
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.question-block:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function importQuestionnaire() {
+        const theme = document.getElementById('importSelect').value;
+        if (!theme) return alert("⚠️ Válassz ki egy betöltendő kérdőívet!");
+
+        fetch(`/kerdoivek/${theme}.json`)
+            .then(res => res.json())
+            .then(data => {
+                const qData = data[theme];
+                if (!qData) return alert("❌ A kiválasztott kérdőív nem érvényes.");
+
+                document.getElementById('theme').value = theme;
+                document.getElementById('start').value = qData.start;
+                document.getElementById('questions').innerHTML = '';
+                questions = [];
+
+                const flow = qData.flow;
+                Object.entries(flow).forEach(([id, q]) => {
+                    const qDiv = document.createElement('div');
+                    qDiv.className = 'question-block';
+                    qDiv.setAttribute('draggable', 'true');
+
+                    qDiv.addEventListener('dragstart', () => qDiv.classList.add('dragging'));
+                    qDiv.addEventListener('dragend', () => qDiv.classList.remove('dragging'));
+
+                    qDiv.innerHTML = `
+            <label>Kérdés azonosító (pl. q1):</label>
+            <input type="text" class="q-id" value="${id}">
+
+            <label>Kérdés szövege (pl. 1 - Igen\\n2 - Nem):</label>
+            <textarea class="q-text" rows="3">${q.text || ''}</textarea>
+
+            <label>Lehetséges válaszok (szám → következő kérdés azonosító):</label>
+            <div class="answers"></div>
+
+            <div class="action-row">
+              <button onclick="addAnswer(this)">➕ Válasz hozzáadása</button>
+              <button class="delete-button" onclick="deleteQuestion(this)">🗑️ Törlés</button>
+            </div>
+
+            <div class="reference-info" style="margin-top: 1rem; font-style: italic; color: var(--accent);"></div>
+          `;
+
+                    const answersDiv = qDiv.querySelector('.answers');
+                    if (q.next) {
+                        Object.entries(q.next).forEach(([key, nextId]) => {
+                            const ans = document.createElement('div');
+                            ans.innerHTML = `
+                <input type="text" class="answer-key" value="${key}">
+                <input type="text" class="answer-next" value="${nextId}">
+              `;
+                            answersDiv.appendChild(ans);
+                        });
+                    }
+
+                    document.getElementById('questions').appendChild(qDiv);
+                    questions.push(qDiv);
+                });
+
+                updateReferences(); // frissítjük a színezést is
+            })
+            .catch(err => {
+                console.error('❌ Hiba a betöltés során:', err);
+                alert("🚫 Nem sikerült betölteni a kérdőívet.");
+            });
+    }
+
+    function deleteQuestion(button) {
+        const block = button.closest('.question-block');
+        if (!block) return;
+
+        // Távolítsuk el a DOM-ból
+        block.remove();
+
+        // Távolítsuk el a questions[] tömbből is
+        questions = questions.filter(q => q !== block);
+
+        updateReferences(); // újraszínezés és láncfrissítés
+    }
+</script>
+</body>
+</html>

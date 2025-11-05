@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>📥 WhatsApp Bejövő Üzenetek</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f9;
+      margin: 0;
+      padding: 2rem;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    input, select {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .message-container {
+      display: grid;
+      gap: 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .message-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .message-header {
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+    }
+    .meta {
+      color: #777;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .type {
+      display: inline-block;
+      font-size: 0.75rem;
+      background: #6c63ff;
+      color: white;
+      padding: 0.2rem 0.5rem;
+      border-radius: 5px;
+      margin-left: 0.5rem;
+    }
+    .message-body img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>📥 Beérkezett WhatsApp Üzenetek</h1>
+
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="🔍 Keresés név, szám vagy üzenet alapján..." />
+    <select id="numberFilter">
+      <option value="">📱 Telefonszám szűrő (összes)</option>
+    </select>
+    <select id="sortOrder">
+      <option value="desc">🔽 Legújabb elöl</option>
+      <option value="asc">🔼 Legrégebbi elöl</option>
+    </select>
+  </div>
+
+  <div class="message-container" id="messageContainer">
+    <p>🔄 Betöltés...</p>
+  </div>
+
+  <script>
+    const container = document.getElementById('messageContainer');
+    const searchInput = document.getElementById('searchInput');
+    const numberFilter = document.getElementById('numberFilter');
+    const sortOrder = document.getElementById('sortOrder');
+
+    let allMessages = [];
+
+    function fetchMessages() {
+      fetch('/messages')
+        .then(res => res.json())
+        .then(data => {
+          allMessages = data;
+          renderFilters(data);
+          renderMessages();
+        })
+        .catch(err => {
+          container.innerHTML = '<p>❌ Hiba az adatok lekérésekor.</p>';
+          console.error(err);
+        });
+    }
+
+    function renderFilters(data) {
+      const uniqueNumbers = [...new Set(data.map(m => m.Phone_number))];
+      numberFilter.innerHTML = '<option value="">📱 Telefonszám szűrő (összes)</option>';
+      uniqueNumbers.forEach(num => {
+        const opt = document.createElement('option');
+        opt.value = num;
+        opt.textContent = `📞 ${num}`;
+        numberFilter.appendChild(opt);
+      });
+    }
+
+    function renderMessages() {
+      let filtered = [...allMessages];
+
+      const search = searchInput.value.toLowerCase();
+      const number = numberFilter.value;
+      const order = sortOrder.value;
+
+      if (search) {
+        filtered = filtered.filter(m =>
+          m.Name.toLowerCase().includes(search) ||
+          m.Phone_number.includes(search) ||
+          m.Body.toLowerCase().includes(search)
+        );
+      }
+
+      if (number) {
+        filtered = filtered.filter(m => m.Phone_number === number);
+      }
+
+      filtered.sort((a, b) => {
+        return order === 'asc'
+          ? new Date(a.Received_at) - new Date(b.Received_at)
+          : new Date(b.Received_at) - new Date(a.Received_at);
+      });
+
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p>📭 Nincs találat a keresésre/szűrésre.</p>';
+        return;
+      }
+
+      filtered.forEach(msg => {
+        const card = document.createElement('div');
+        card.className = 'message-card';
+        card.innerHTML = `
+          <div class="message-header">${msg.Name || '👤 Ismeretlen'} <span class="type">${msg.Type}</span></div>
+          <div class="meta">📱 ${msg.Phone_number} – 🕒 ${msg.Received_at}</div>
+          <div class="message-body">
+            ${
+              msg.Type === 'image' && msg.Body
+                ? `<img src="${msg.Body}" alt="Bejövő kép" />`
+                : msg.Type === 'document' && msg.Body
+                  ? `<a href="${msg.Body}" target="_blank">📎 Dokumentum megnyitása</a>`
+                  : msg.Body || '<em>(nincs tartalom)</em>'
+            }
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Események
+    searchInput.addEventListener('input', renderMessages);
+    numberFilter.addEventListener('change', renderMessages);
+    sortOrder.addEventListener('change', renderMessages);
+
+    // Frissítés 10 másodpercenként
+    fetchMessages();
+    setInterval(fetchMessages, 10000);
+  </script>
+</body>
+</html>

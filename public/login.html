@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Bejelentkezés • WhatsApp panel</title>
+    <style>
+        :root {
+            --bg:#ffffff; --text:#111; --accent:#26a69a; --input:#f0f0f0; --border:#ccc;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root { --bg:#1e1e1e; --text:#eee; --accent:#26a69a; --input:#2c2c2c; --border:#444; }
+        }
+        [data-theme="dark"] { --bg:#1e1e1e; --text:#eee; --input:#2c2c2c; --border:#444; }
+        [data-theme="light"]{ --bg:#fff; --text:#111; --input:#f0f0f0; --border:#ccc; }
+        *{box-sizing:border-box}
+        body{
+            margin:0; padding:2rem; min-height:100vh; display:flex; justify-content:center; align-items:center;
+            background:var(--bg); color:var(--text); font-family:'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, Arial, sans-serif;
+            transition: background .3s, color .3s;
+        }
+        .card{
+            width:100%; max-width:480px; background:var(--bg); border:1px solid var(--border);
+            border-radius:1rem; padding:1.5rem; box-shadow:0 10px 25px rgba(0,0,0,.1);
+        }
+        h1{margin:0 0 .5rem; font-size:1.4rem; text-align:center}
+        .muted{color:#777}
+        label{display:block; margin-top:.75rem; margin-bottom:.25rem; font-weight:500}
+        input{width:100%; padding:.75rem; border:1px solid var(--border); border-radius:.5rem; background:var(--input); color:var(--text)}
+        button{
+            width:100%; padding:.75rem; margin-top:1rem; font-size:1rem; background:var(--accent);
+            color:#fff; border:none; border-radius:.5rem; cursor:pointer;
+        }
+        button:hover{ background:#00796b }
+        .btn-secondary{ background:transparent; color:var(--text); border:1px solid var(--border); }
+        .btn-secondary:hover{ background:color-mix(in oklab, var(--input) 85%, transparent); }
+        .btn-linklike{ background:none; color:var(--text); text-decoration:underline; border:none; }
+        .row{display:flex; gap:.75rem}
+        .row>*{flex:1}
+        .tabs{display:flex; gap:.5rem; margin-bottom:1rem}
+        .tab{flex:1; padding:.6rem; border:1px solid var(--border); background:var(--input); color:var(--text);
+            border-radius:.5rem; cursor:pointer; text-align:center; font-weight:600}
+        .tab.active{ outline:2px solid color-mix(in oklab, var(--accent) 35%, transparent); border-color:var(--accent) }
+        .theme-toggle{ text-align:right; margin-bottom:.5rem }
+        .theme-toggle button{ background:none; border:1px solid var(--border); color:var(--text); border-radius:.5rem; padding:.4rem .6rem; cursor:pointer }
+        #msg{min-height:1.2rem; margin-top:.5rem; font-weight:600; text-align:center}
+        .hint{font-size:.85rem; color:#777; margin-top:.25rem}
+        .error{color:crimson}
+        .ok{color:#2e7d32}
+
+        /* Szebb, kártyás hozzájárulás */
+        label.consent{
+            display:flex !important; gap:.6rem; align-items:flex-start; padding:.75rem .9rem;
+            margin-top:.75rem; background: color-mix(in oklab, var(--input) 85%, transparent);
+            border:1px solid var(--border); border-radius:.6rem; cursor:pointer;
+            transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+        label.consent:hover{
+            border-color: color-mix(in oklab, var(--accent) 60%, var(--border));
+            box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+        }
+        label.consent input[type="checkbox"]{
+            width:1.05rem; height:1.05rem; margin-top:.1rem; accent-color: var(--accent); flex:0 0 auto;
+        }
+        label.consent span{ font-size:.95rem; line-height:1.35rem; color: var(--text); }
+        label.consent a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+        label.consent.error{
+            border-color: crimson !important;
+            box-shadow: 0 0 0 3px color-mix(in oklab, crimson 22%, transparent) !important;
+        }
+
+        /* MODAL */
+        .overlay{
+            position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.45); z-index:1000;
+            padding:1rem;
+        }
+        .modal{
+            width:100%; max-width:420px; background:var(--bg); color:var(--text); border:1px solid var(--border);
+            border-radius:1rem; padding:1rem 1.25rem; box-shadow:0 20px 40px rgba(0,0,0,.25);
+            animation:pop .18s ease-out;
+        }
+        .modal h2{ margin:.25rem 0 .25rem; font-size:1.2rem; text-align:center }
+        .modal p{ margin:.25rem 0 .75rem; color:#777; text-align:center }
+        .modal .row{ gap:.5rem }
+        .modal .actions{
+            display:flex;
+            gap:.5rem;
+            margin-top:.75rem;
+            justify-content:space-between;    /* szép elosztás */
+            flex-wrap:nowrap;                 /* mindig egy sorban tartjuk */
+        }
+        .modal .actions button{
+            width:auto;                       /* felülírja a global 100%-ot */
+            flex:0 0 auto;
+            padding:.6rem 1rem;
+            white-space:nowrap;               /* a (11) se törjön új sorba */
+            font-size:.95rem;                 /* pici finomítás */
+        }
+        .modal .actions .btn-secondary{ border:1px solid var(--border); }
+        .modal .actions .btn-linklike{
+            width:auto;
+            padding:.6rem .25rem;
+            text-decoration:underline;
+        }
+
+        /* Nagyon keskeny képernyőn engedjük a törést (opcionális) */
+        @media (max-width: 360px){
+            .modal .actions{ flex-wrap:wrap; }
+            .modal .actions button{ flex:1 0 auto; }   /* szépen törik */
+        }
+        @keyframes pop{ from{ transform:translateY(8px); opacity:.6 } to{ transform:none; opacity:1 } }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="theme-toggle"><button id="btnTheme" type="button">🌓 Téma váltása</button></div>
+    <h1>Belépés a panelre</h1>
+    <div class="muted" style="text-align:center; margin-bottom:.75rem;">Jelentkezz be vagy regisztrálj új fiókot</div>
+
+    <div class="tabs">
+        <div id="tabLogin" class="tab active">Bejelentkezés</div>
+        <div id="tabReg" class="tab">Regisztráció</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="viewLogin">
+        <label>Email / felhasználónév</label>
+        <input id="loginId" type="text" placeholder="valaki@pelda.hu vagy pl. kovacs_anna" />
+        <label>Jelszó</label>
+        <input id="loginPass" type="password" placeholder="••••••••" />
+        <button id="btnLogin">Belépés</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="viewReg" style="display:none">
+        <!-- (a 'muted' figyelmeztető sor törölve) -->
+
+        <label>Név</label>
+        <input id="regName" type="text" placeholder="pl. Kovács Anna" />
+
+        <label>Felhasználónév (opcionális)</label>
+        <input id="regUsername" type="text" placeholder="pl. kovacs_anna" />
+        <!-- (a #userHint törölve) -->
+
+        <label>Email</label>
+        <input id="regEmail" type="email" placeholder="valaki@pelda.hu" />
+
+        <label>Jelszó</label>
+        <input id="regPass" type="password" placeholder="Erős jelszó" />
+
+        <label>Jelszó megerősítése</label>
+        <input id="regPass2" type="password" placeholder="Írd be újra a jelszót" />
+        <div id="pwHint" class="hint"></div>
+
+        <!-- Owner / WhatsApp beállítások (csak ha needs_owner=true) -->
+        <div id="ownerBox" style="display:none; margin-top: .75rem; padding:.75rem; border:1px dashed var(--border); border-radius:.6rem;">
+            <div class="muted" style="margin-bottom:.5rem;"><b>Első indítás:</b> nincs még felhasználó. Hozz létre egy <b>Owner</b> fiókot és add meg a WhatsApp/Meta adataidat:</div>
+            <label>WABA_ID</label>
+            <input id="wabaId" placeholder="pl. 123456789012345" />
+            <label>PHONE_NUMBER_ID</label>
+            <input id="phoneNumberId" placeholder="pl. 123456789012345" />
+            <label>ACCESS_TOKEN</label>
+            <input id="accessToken" placeholder="Meta hosszú érvényességű token" />
+            <label>VERIFY_TOKEN</label>
+            <input id="verifyToken" placeholder="Webhook verify token" />
+        </div>
+
+        <label>Adatkezelési tájékoztató</label>
+        <label class="consent">
+            <input id="acceptPrivacy" type="checkbox" />
+            <span>Elfogadom az
+          <a href="/privacy.html" target="_blank" rel="noopener">Adatkezelési tájékoztatót</a>
+        </span>
+        </label>
+        <div id="privacyHint" class="hint error" style="display:none"></div>
+
+        <button id="btnReg">Regisztráció</button>
+    </div>
+
+    <div id="msg" class="muted"></div>
+</div>
+
+<!-- MODAL: E-mail ellenőrzés -->
+<div id="codeOverlay" class="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
+        <h2 id="codeTitle">E-mail ellenőrzés</h2>
+        <p>Elküldtük a 6 számjegyű kódot erre a címre: <b id="codeEmail"></b></p>
+        <label style="text-align:left;">Visszaigazoló kód</label>
+        <input id="otpCode" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6 számjegy" />
+        <div id="otpMsg" class="hint" style="min-height:1.1rem;"></div>
+        <div class="actions">
+            <button id="btnVerify" type="button">Megerősítés</button>
+            <button id="btnResend" type="button" class="btn-secondary">Kód újraküldése</button>
+            <button id="btnCancel" type="button" class="btn-linklike">Mégse</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const $ = s => document.querySelector(s);
+
+    // === Téma váltó ===
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) document.body.setAttribute('data-theme', savedTheme);
+    $('#btnTheme').onclick = () => {
+        const cur = document.body.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    };
+
+    // === Fül váltás ===
+    const show = (login=true) => {
+        $('#tabLogin').classList.toggle('active', login);
+        $('#tabReg').classList.toggle('active', !login);
+        $('#viewLogin').style.display = login ? 'block' : 'none';
+        $('#viewReg').style.display   = login ? 'none'  : 'block';
+        $('#msg').textContent = '';
+        $('#pwHint').textContent = '';
+        $('#pwHint').className = 'hint';
+    };
+    $('#tabLogin').onclick = () => show(true);
+    $('#tabReg').onclick   = () => show(false);
+
+    // === Közös fetch helper ===
+    async function api(path, opts={}) {
+        const res = await fetch(path, Object.assign({ method:'GET', headers:{'Content-Type':'application/json'} }, opts));
+        const isJson = (res.headers.get('content-type')||'').includes('application/json');
+        const data = isJson ? await res.json() : await res.text();
+        if (!res.ok) throw new Error((data && data.error) || res.statusText);
+        return data;
+    }
+
+    // === Login ===
+    $('#btnLogin').onclick = async () => {
+        $('#msg').textContent = 'Beléptetés…'; $('#msg').style.color = '';
+        try {
+            const identifier = $('#loginId').value.trim();
+            const password = $('#loginPass').value;
+            await api('/admin/auth/login', { method:'POST', body: JSON.stringify({ identifier, password }) });
+            $('#msg').textContent = 'Sikeres bejelentkezés. Átirányítás…';
+            setTimeout(()=> location.href = '/menu.html', 300);
+        } catch (e) {
+            $('#msg').textContent = e.message; $('#msg').style.color = 'crimson';
+        }
+    };
+
+    // === Regisztráció kliens oldali ellenőrzések ===
+    function pwStrong(pw){ return pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /\d/.test(pw); }
+    function usernameValid(u){
+        if (!u) return true;
+        const s = u.trim();
+        if (!s) return true;
+        const okShape   = /^[a-z0-9](?:[a-z0-9._-]{1,30})[a-z0-9]$/i.test(s);
+        const noDoubles = !/(\.\.|__|--)/.test(s);
+        return okShape && noDoubles;
+    }
+
+    let privacyTouched = false; // <- csak a gombnyomás után mutatjuk a hibát
+
+    function validateRegForm(){
+        const pw = $('#regPass').value;
+        const pw2 = $('#regPass2').value;
+        const uname = ($('#regUsername')?.value || '').trim();
+
+        let msg = '';
+        if (!pwStrong(pw)) msg = 'Min. 8 karakter, kis-/nagybetű és szám kell.';
+        else if (pw !== pw2) msg = 'A két jelszó nem egyezik.';
+
+        const okUser = usernameValid(uname);
+        const userHintEl = $('#userHint');
+        if (userHintEl) userHintEl.className = 'hint' + (okUser ? '' : ' error'); // <- ő már lehet, hogy nincs
+
+        $('#pwHint').textContent = msg;
+        $('#pwHint').className = 'hint ' + (msg ? 'error' : 'ok');
+
+        document.querySelector('#btnReg').disabled = !canEnableReg();
+    }
+
+    function showPrivacyError(show){
+        const label = document.querySelector('label.consent');
+        const hint  = $('#privacyHint');
+        if (show){
+            label.classList.add('error'); hint.style.display = 'block';
+            hint.textContent = 'A regisztrációhoz el kell fogadnod az adatkezelési tájékoztatót.';
+        } else {
+            label.classList.remove('error'); hint.style.display = 'none'; hint.textContent = '';
+        }
+    }
+
+    function canEnableReg(){
+        const name  = ($('#regName')?.value || '').trim();
+        const email = $('#regEmail').value.trim();
+        const p1    = $('#regPass').value;
+        const p2    = $('#regPass2').value;
+        const uname = ($('#regUsername')?.value || '').trim();
+
+        const okName  = name.length >= 2 && name.length <= 70;
+        const okEmail = /^[^@]+@[^@]+\.[^@]+$/.test(email);
+        const okPass  = p1.length >= 8 && p1 === p2;
+        const okUser  = usernameValid(uname);
+
+        // NEM kényszerítjük rá a hozzájárulást és a kódot a gomb engedélyezésére
+        return okName && okEmail && okPass && okUser;
+    }
+
+    // élő validáció
+    ['regPass','regPass2','regUsername','regName','regEmail'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', validateRegForm);
+    });
+    document.querySelector('#btnReg').disabled = !canEnableReg();
+
+    $('#acceptPrivacy').addEventListener('change', () => {
+        if ($('#acceptPrivacy').checked) showPrivacyError(false);
+    });
+
+    // === Modal segédek ===
+    const modal = {
+        open(email){
+            $('#codeEmail').textContent = email;
+            $('#otpCode').value = '';
+            $('#otpMsg').textContent = '';
+            $('#codeOverlay').style.display = 'grid';
+            $('#codeOverlay').setAttribute('aria-hidden','false');
+            setTimeout(()=> $('#otpCode').focus(), 50);
+            startResendCooldown(30);
+        },
+        close(){
+            $('#codeOverlay').style.display = 'none';
+            $('#codeOverlay').setAttribute('aria-hidden','true');
+        }
+    };
+
+    let resendTimer = null, remaining = 0;
+    function startResendCooldown(sec){
+        clearInterval(resendTimer);
+        remaining = sec;
+        const btn = $('#btnResend');
+        btn.disabled = true;
+        btn.textContent = `Kód újraküldése (${remaining})`;
+        resendTimer = setInterval(()=>{
+            remaining--;
+            if (remaining <= 0){
+                clearInterval(resendTimer);
+                btn.disabled = false;
+                btn.textContent = 'Kód újraküldése';
+            } else {
+                btn.textContent = `Kód újraküldése (${remaining})`;
+            }
+        }, 1000);
+    }
+
+    async function sendCode(email){
+        const out = await api('/auth/signup/request', { method:'POST', body: JSON.stringify({ email }) });
+        return out?.message || 'A kódot elküldtük az emailedre.';
+    }
+
+    // === Regisztráció gomb ===
+    $('#btnReg').onclick = async ()=>{
+        privacyTouched = true;
+        $('#msg').textContent = ''; $('#msg').style.color = '';
+
+        try{
+            const display_name = ($('#regName')?.value || '').trim();
+            const email = $('#regEmail').value.trim();
+            const password = $('#regPass').value;
+            const password2 = $('#regPass2').value;
+            const username = ($('#regUsername')?.value || '').trim();
+            const acceptPrivacy = $('#acceptPrivacy').checked;
+
+            // látható hiba CSAK most
+            if (!acceptPrivacy){
+                showPrivacyError(true);
+                throw new Error('A regisztrációhoz el kell fogadni az adatkezelési tájékoztatót.');
+            }
+            if (!canEnableReg()){
+                throw new Error('Kérlek, töltsd ki helyesen az összes mezőt.');
+            }
+            if (password !== password2) throw new Error('A két jelszó nem egyezik.');
+
+            // 1) kód küldés
+            $('#msg').textContent = 'Kód küldése…';
+            await sendCode(email);
+            $('#msg').textContent = 'Kód elküldve. Írd be a felugró ablakban.';
+            modal.open(email);
+
+            // 2) Modal események
+            const doVerify = async ()=>{
+                const code = $('#otpCode').value.trim();
+                if (!/^\d{6}$/.test(code)){
+                    $('#otpMsg').textContent = '6 számjegy szükséges.'; $('#otpMsg').className = 'hint error';
+                    $('#otpCode').focus(); return;
+                }
+                try{
+                    $('#otpMsg').textContent = 'Ellenőrzés…'; $('#otpMsg').className = 'hint';
+
+                    const common = {
+                        email,
+                        code,
+                        password,
+                        acceptPrivacy: true,
+                        display_name,
+                        username: username || null
+                    };
+
+                    if (NEEDS_OWNER) {
+                        // extra mezők
+                        const waba_id        = ($('#wabaId')?.value || '').trim();
+                        const phone_number_id= ($('#phoneNumberId')?.value || '').trim();
+                        const access_token   = ($('#accessToken')?.value || '').trim();
+                        const verify_token   = ($('#verifyToken')?.value || '').trim();
+
+                        if (!waba_id || !phone_number_id || !access_token || !verify_token) {
+                            $('#otpMsg').textContent = 'Töltsd ki a WhatsApp/Meta mezőket is!'; $('#otpMsg').className = 'hint error';
+                            return;
+                        }
+
+                        await api('/auth/first-owner/verify', {
+                            method:'POST',
+                            body: JSON.stringify({ ...common, waba_id, phone_number_id, access_token, verify_token })
+                        });
+                    } else {
+                        // normál verify
+                        await api('/auth/signup/verify', {
+                            method:'POST',
+                            body: JSON.stringify(common)
+                        });
+                    }
+
+                    $('#otpMsg').textContent = 'Sikeres regisztráció. Átirányítás…'; $('#otpMsg').className = 'hint ok';
+                    setTimeout(()=> location.href = '/menu.html', 300);
+                }catch(e){
+                    $('#otpMsg').textContent = e.message || 'Hiba történt.'; $('#otpMsg').className = 'hint error';
+                    $('#otpCode').focus();
+                }
+            };
+
+            $('#btnVerify').onclick = doVerify;
+            $('#otpCode').onkeydown = (ev)=>{ if (ev.key === 'Enter') doVerify(); };
+            $('#btnResend').onclick = async ()=>{
+                try{
+                    $('#otpMsg').textContent = 'Újraküldés…'; $('#otpMsg').className = 'hint';
+                    await sendCode(email);
+                    $('#otpMsg').textContent = 'Kód újraküldve.'; $('#otpMsg').className = 'hint ok';
+                    startResendCooldown(30);
+                }catch(e){
+                    $('#otpMsg').textContent = e.message || 'Újraküldési hiba.'; $('#otpMsg').className = 'hint error';
+                }
+            };
+            $('#btnCancel').onclick = ()=> modal.close();
+
+        }catch(e){
+            $('#msg').textContent = e.message;
+            $('#msg').style.color = 'crimson';
+        }
+    };
+
+    // ESC zárja a modalt
+    document.addEventListener('keydown', (e)=>{
+        if (e.key === 'Escape' && $('#codeOverlay').style.display === 'grid') modal.close();
+    });
+
+    let NEEDS_OWNER = false;
+    // Induláskor nézzük meg, kell-e owner flow
+    (async function initSetupState(){
+        try{
+            const st = await api('/admin/setup/state');
+            NEEDS_OWNER = !!st?.needs_owner;
+            if (NEEDS_OWNER) {
+                document.querySelector('#ownerBox').style.display = 'block';
+                document.querySelector('#tabReg').textContent = 'Owner regisztráció';
+            }
+        }catch(e){
+            // ha valamiért nem érjük el, marad a default (normál reg)
+            console.warn('setup/state hiba:', e.message);
+        }
+    })();
+</script>
+</body>
+</html>

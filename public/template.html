@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp sablonlánc szerkesztő</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #111;
+            --accent: #26a69a;
+            --input: #f0f0f0;
+            --border: #ccc;
+        }
+
+        body[data-theme="dark"] {
+            --bg: #1e1e1e;
+            --text: #eee;
+            --accent: #26a69a;
+            --input: #2c2c2c;
+            --border: #444;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-right: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            height: 100%;
+        }
+
+        .container {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-left: 240px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.75rem;
+            margin-top: 0.3rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input);
+            color: var(--text);
+            font-size: 1rem;
+        }
+        /* Nyelv/Kategória select mezők – egységes, mint a többi oldalon */
+        .row{ display:flex; gap:1rem; flex-wrap:wrap; }
+        .row > div{ flex:1; }
+
+        select{
+            width:100%;
+            box-sizing:border-box;
+            padding:.75rem;
+            margin-top:.3rem;
+            border:1px solid var(--border);
+            border-radius:.5rem;
+            background:var(--input);
+            color:var(--text);
+            font-size:1rem;
+        }
+        textarea {
+            height: 100px;
+            resize: none;
+        }
+
+        .card {
+            background: var(--input);
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            padding: 0;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .button-row select {
+            padding: 0.6rem 1rem;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            background: var(--input);
+            color: var(--text);
+        }
+
+        .button-row button,
+        .action-row button,
+        button {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: #00796b;
+        }
+
+        .button-area {
+            margin-bottom: 1rem;
+        }
+
+        .button-area .button-row-entry {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .button-area input {
+            flex: 1;
+        }
+
+        #response {
+            background: var(--input);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            white-space: pre-wrap;
+            margin-top: 2rem;
+        }
+
+        .theme-toggle {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .button-area div {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .remove-button {
+            background: crimson;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .remove-button:hover {
+            background: darkred;
+        }
+
+        .button-row-entry input {
+            margin-right: 0.3rem;
+        }
+        /* --- Egységes téma gomb --- */
+        .theme-toggle {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .theme-toggle button {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;   /* ugyanakkora, mint a másik két oldalon */
+            padding: 0;
+        }
+
+        /* --- Egységes "Vissza a menübe" gomb --- */
+        button.action {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1.5rem;
+            font-size: 1rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+        button.action:hover { background: #00796b; }
+        /* Felső sor (gomb – select – gomb) */
+        .toolbar{
+            display: grid;
+            grid-template-columns: auto minmax(260px,1fr) auto;
+            gap: 1rem;
+            align-items: center;
+            max-width: 800px;
+            margin: 1rem auto 0;
+        }
+        .toolbar button{ width:auto; }
+        .toolbar select{
+            width: 100%;
+            padding: .6rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: .5rem;
+            background: var(--input);
+            color: var(--text);
+        }
+
+        /* Alsó sor (két gomb középen) */
+        .actions-row{
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        /* Mobil: a felső sor elemei egymás alatt */
+        @media (max-width: 720px){
+            .toolbar{ grid-template-columns: 1fr; }
+        }
+
+    </style>
+</head>
+<body>
+<div style="position:fixed; left:1rem; top:2rem; bottom:2rem; width:220px; overflow:auto; background:var(--bg); border:1px solid var(--border); border-radius:1rem; padding:1rem; box-shadow:0 5px 20px rgba(0,0,0,0.05);">
+    <h3 style="color:var(--accent); font-size:1.1rem; margin-top:0;">📄 Kérdéslánc</h3>
+    <ul id="chainList" style="list-style:none; padding-left:0; font-size:0.9rem;"></ul>
+</div>
+
+<div class="container">
+    <div class="theme-toggle">
+        <button onclick="toggleTheme()">🌓 Téma váltása</button>
+    </div>
+
+    <h1>WhatsApp sablonlánc szerkesztő</h1>
+
+    <label>Kérdőív témaneve (fájlnév lesz):</label>
+    <input type="text" id="theme" placeholder="pl. kiszallitas_ellenorzes" />
+    <div class="row">
+        <div>
+            <label>Nyelv</label>
+            <select id="tpl_lang">
+                <option value="hu" selected>hu</option>
+                <option value="en">en</option>
+                <option value="de">de</option>
+                <!-- ha régiókódosat szeretnél, bővíthető pl. en_US, hu_HU stb. -->
+            </select>
+        </div>
+        <div>
+            <label>Kategória</label>
+            <select id="tpl_cat">
+                <option value="UTILITY" selected>UTILITY</option>
+                <option value="MARKETING">MARKETING</option>
+                <option value="AUTHENTICATION">AUTHENTICATION</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="templateContainer"></div>
+
+    <!-- FELSŐ SOR: bal gomb – select – jobb gomb -->
+    <div class="toolbar">
+        <button onclick="addTemplate()">➕ Új kérdés (sablon)</button>
+
+        <select id="importSelect">
+            <option value="">-- Válassz kérdőívet --</option>
+        </select>
+
+        <button onclick="importTemplateChain()">📂 Betöltés</button>
+    </div>
+
+    <!-- ALSÓ SOR: két akciógomb középen -->
+    <div class="actions-row">
+        <button onclick="updateTemplateReferences()">🔄 Hivatkozások frissítése</button>
+        <button onclick="saveTemplateChain()">💾 Mentés és sablonok feltöltése</button>
+    </div>
+
+
+    <div style="margin-top: 3rem; text-align: center;">
+        <button class="action" onclick="location.href='template-menu.html'">Vissza a szerkesztőbe</button>
+    </div>
+
+    <pre id="response"></pre>
+</div>
+
+<script>
+    let templateIndex = 1;
+
+    function addTemplate(name = '', text = '', buttons = [], nextMap = {}) {
+        const container = document.getElementById('templateContainer');
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+        <label>Sablon neve:</label>
+        <input type="text" class="template-name" placeholder="pl. kerdes_1" value="${name}">
+
+        <label>Üzenet szövege:</label>
+        <textarea class="template-text">${text}</textarea>
+
+        <label>Gombok és következő sablon neve:</label>
+        <div class="button-area"></div>
+
+        <div class="action-row">
+          <button onclick="addButtonRow(this)">➕ Gomb hozzáadása</button>
+          <button class="delete-button" onclick="deleteTemplateCard(this)">🗑️ Törlés</button>
+        </div>
+      `;
+        container.appendChild(div);
+
+        const buttonArea = div.querySelector('.button-area');
+        buttons.forEach(btn => {
+            const next = nextMap[btn] || '';
+            const row = document.createElement('div');
+            row.className = 'button-row-entry';
+            row.innerHTML = `
+          <input type="text" placeholder="Gomb szövege" value="${btn}" style="flex:1;">
+          <input type="text" placeholder="Következő sablon neve" value="${next}" style="flex:1;">
+          <button onclick="removeButtonRow(this)" class="remove-button">❌</button>
+        `;
+            buttonArea.appendChild(row);
+        });
+    }
+
+    function addButtonRow(button) {
+        const card = button.closest('.card');
+        const area = card.querySelector('.button-area');
+        const row = document.createElement('div');
+        row.className = 'button-row-entry';
+        row.innerHTML = `
+        <input type="text" placeholder="Gomb szövege" style="flex:1;">
+        <input type="text" placeholder="Következő sablon neve" style="flex:1;">
+        <button onclick="removeButtonRow(this)" class="remove-button">❌</button>
+      `;
+        area.appendChild(row);
+    }
+
+    async function saveTemplateChain() {
+        const theme = document.getElementById('theme').value.trim();
+        const language = document.getElementById('tpl_lang').value;
+        const category = document.getElementById('tpl_cat').value;
+        if (!theme) return alert("⚠️ Add meg a kérdőív témanevét!");
+
+        const cards = document.querySelectorAll('.card');
+        const templates = [];
+        const flow = {};
+
+        for (const card of cards) {
+            const name = card.querySelector('.template-name').value.trim();
+            const text = card.querySelector('.template-text').value.trim();
+            const buttonRows = card.querySelectorAll('.button-area div');
+
+            const buttons = [];
+            const nextMap = {};
+
+            buttonRows.forEach(row => {
+                const btnText = row.children[0].value.trim();
+                const next = row.children[1].value.trim();
+                if (btnText) {
+                    buttons.push(btnText);
+                    if (next) nextMap[btnText] = next;
+                }
+            });
+
+            if (!name || !text) {
+                return alert("❌ Minden sablonnak kell név és szöveg!");
+            }
+
+            templates.push({ name, text, buttons });
+            flow[name] = { text, next: nextMap };
+        }
+
+        const payload = {
+            theme,
+            language,      // ⬅️ ÚJ
+            category,      // ⬅️ ÚJ
+            templates,
+            chain: {
+                [theme]: {
+                    start: templates[0]?.name || '',
+                    flow
+                }
+            }
+        };
+
+
+        const res = await fetch('/save-to-questionnaire', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+        document.getElementById('response').textContent = JSON.stringify(json, null, 2);
+    }
+
+    async function importTemplateChain() {
+        const theme = document.getElementById('importSelect').value;
+        if (!theme) return alert("⚠️ Válassz ki egy betöltendő kérdőívet!");
+
+        try {
+            const res = await fetch(`/get-questionnaire/${theme}`);
+            if (!res.ok) throw new Error(`Szerverhiba: ${res.status}`);
+            const flow = await res.json();
+
+            if (!flow || typeof flow !== 'object') {
+                throw new Error("❌ A betöltött kérdőív érvénytelen vagy üres.");
+            }
+
+            // Téma beállítása
+            document.getElementById('theme').value = theme;
+
+            // Korábbi sablonok törlése
+            document.getElementById('templateContainer').innerHTML = '';
+
+            // Sablonok hozzáadása
+            Object.entries(flow).forEach(([name, obj]) => {
+                const text = obj.text || '';
+                const next = obj.next || {};
+                const buttons = Object.keys(next);
+                addTemplate(name, text, buttons, next);
+            });
+
+            // Kérdéslánc vizuális frissítése
+            updateTemplateReferences();
+        } catch (e) {
+            console.error("❌ Hiba a kérdőív betöltésekor:", e);
+            alert("❌ Hiba a kérdőív betöltésekor:\n\n" + e.message);
+        }
+    }
+
+    function toggleTheme() {
+        const current = document.body.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Téma visszatöltése
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+
+        // Nyelv & kategória legördülők (EZEKNEK a HTML-ben kell létezniük!)
+        const langSel = document.getElementById('tpl_lang');
+        const catSel  = document.getElementById('tpl_cat');
+
+        if (langSel) {
+            langSel.value = localStorage.getItem('tpl_lang') || langSel.value || 'hu';
+            langSel.addEventListener('change', (e) => {
+                localStorage.setItem('tpl_lang', e.target.value);
+            });
+        }
+        if (catSel) {
+            catSel.value = localStorage.getItem('tpl_cat') || catSel.value || 'UTILITY';
+            catSel.addEventListener('change', (e) => {
+                localStorage.setItem('tpl_cat', e.target.value);
+            });
+        }
+
+        // Kérdőívek legördülő feltöltése
+        fetch('/available-template-questionnaires')
+            .then(res => res.json())
+            .then(themes => {
+                const select = document.getElementById('importSelect');
+                if (!select) return;
+                themes.forEach(theme => {
+                    const opt = document.createElement('option');
+                    opt.value = theme;
+                    opt.textContent = theme;
+                    select.appendChild(opt);
+                });
+            })
+            .catch(err => console.error('❌ Kérdőívek betöltése sikertelen:', err));
+    });
+
+
+    function removeButtonRow(btn) {
+        const row = btn.parentElement;
+        if (row) row.remove();
+    }
+
+    function deleteTemplateCard(btn) {
+        const card = btn.closest('.card');
+        if (card) card.remove();
+    }
+
+    function updateTemplateReferences() {
+        const cards = document.querySelectorAll('.card');
+        const map = {};
+        const incoming = {};
+        const outgoing = {};
+
+        cards.forEach(card => {
+            const name = card.querySelector('.template-name')?.value.trim();
+            if (!name) return;
+            incoming[name] = 0;
+            outgoing[name] = 0;
+            map[name] = card;
+        });
+
+        cards.forEach(card => {
+            const name = card.querySelector('.template-name')?.value.trim();
+            const buttonRows = card.querySelectorAll('.button-area div');
+            buttonRows.forEach(row => {
+                const next = row.children[1]?.value.trim();
+                if (name && next) {
+                    outgoing[name]++;
+                    incoming[next] = (incoming[next] || 0) + 1;
+                }
+            });
+        });
+
+        cards.forEach(card => {
+            const name = card.querySelector('.template-name')?.value.trim();
+            card.style.background = 'var(--input)';
+            card.style.color = 'var(--text)';
+            if (!name) return;
+            const theme = document.body.getAttribute('data-theme') || 'light';
+
+            if (incoming[name] > 1) {
+                card.style.background = theme === 'dark' ? '#554400' : '#fff3c4';
+            } else if (outgoing[name] === 0) {
+                card.style.background = theme === 'dark' ? '#4d1d1d' : '#ffd6d6';
+            }
+        });
+
+        updateTemplateChainList();
+    }
+
+    function updateTemplateChainList() {
+        const list = document.getElementById('chainList');
+        list.innerHTML = '';
+        const cards = document.querySelectorAll('.card');
+        const map = {};
+        const nextMap = {};
+        cards.forEach(card => {
+            const name = card.querySelector('.template-name')?.value.trim();
+            const nexts = [];
+            card.querySelectorAll('.button-area div').forEach(row => {
+                const next = row.children[1]?.value.trim();
+                if (next) nexts.push(next);
+            });
+            map[name] = true;
+            nextMap[name] = nexts;
+        });
+
+        const visited = new Set();
+        function walk(id, depth = 0) {
+            if (!id || visited.has(id)) return;
+            visited.add(id);
+            const li = document.createElement('li');
+            li.textContent = `${'→ '.repeat(depth)}${id}`;
+            li.style.cursor = 'pointer';
+            li.style.marginBottom = '0.5rem';
+            li.onclick = () => {
+                const card = [...cards].find(c => c.querySelector('.template-name')?.value.trim() === id);
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            };
+            list.appendChild(li);
+            (nextMap[id] || []).forEach(n => walk(n, depth + 1));
+        }
+
+        // A legelső sablon nevét használjuk indulásként
+        const firstCard = cards[0]?.querySelector('.template-name')?.value.trim();
+        walk(firstCard);
+    }
+
+    function removeButtonRow(btn) {
+        const row = btn.closest('div');
+        if (row) row.remove();
+    }
+
+</script>
+</body>
+</html>

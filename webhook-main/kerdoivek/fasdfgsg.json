@@ -1,0 +1,44 @@
+{
+  "fasdfgsg": {
+    "start": "q",
+    "flow": {
+      "q": {
+        "text": "gsfdsdífg\n1 - nem\n2 - igen",
+        "next": {
+          "1": "q1",
+          "2": "q2"
+        }
+      },
+      "q1": {
+        "text": "afdfgsadf",
+        "next": {
+          "1": "q1.1",
+          "2": "q1.2"
+        }
+      },
+      "q2": {
+        "text": "gsgsfd",
+        "next": {
+          "1": "q2.1",
+          "2": "q2.2"
+        }
+      },
+      "q1.1": {
+        "text": "asdafd",
+        "next": {}
+      },
+      "q1.2": {
+        "text": "adfadf",
+        "next": {}
+      },
+      "q2.2": {
+        "text": "fasdgfsdfg",
+        "next": {}
+      },
+      "q2.1": {
+        "text": "sfgsdfgh",
+        "next": {}
+      }
+    }
+  }
+}

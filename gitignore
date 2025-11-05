@@ -1,0 +1,33 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+
+# Env & local config
+.env
+.env.*
+*.local
+
+# SQLite & local data
+*.db
+data/
+public/uploads/
+public/sent_media/
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Old VCS
+.git/
